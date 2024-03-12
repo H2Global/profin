@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: profin
+Version: 1.0
+Summary: Monte-carlo simulation of energy-project KPIs
+Author: Julian Reul
+Author-email: julian.reul@rwth-aachen.de
+License: MIT
+License-File: LICENSE.txt

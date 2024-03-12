@@ -150,10 +150,16 @@ class Project(Indicators, Risks):
                 if attr in list(self.RISK_PARAM): #attribute is defined as a risk
                     if attr == "LIFETIME":
                         raise ValueError("Attribute LIFETIME cannot be randomized.")
-                    #populate random_shape with one entry over the whole lifetime.
-                    constant_mean = self.ATTR[attr] #this is a float value
-                    random_shape[:] = constant_mean
-                    self.ATTR[attr] = random_shape
+                    elif attr == "K_INVEST":
+                        #K_INVEST is not an annually constant value. It's a one-time value (initial investment).
+                        constant_mean = self.ATTR[attr] #this is a float value
+                        random_shape[0] = constant_mean
+                        self.ATTR[attr] = random_shape
+                    else:
+                        #populate random_shape with one entry over the whole lifetime.
+                        constant_mean = self.ATTR[attr] #this is a float value
+                        random_shape[:] = constant_mean
+                        self.ATTR[attr] = random_shape
                 else: #attribute is not defined as a risk or given as an array.
                     if attr in ["INTEREST", "LIFETIME", "REPAYMENT_PERIOD", 
                                 "EQUITY_SHARE", "CRP", "CRP_EXPOSURE", 
@@ -162,6 +168,11 @@ class Project(Indicators, Risks):
                                 ]:
                         #exclude some attributes from conversion to matrix form.
                         continue
+                    elif attr == "K_INVEST":
+                        #K_INVEST is not an annually constant value. It's a one-time value (initial investment).
+                        constant_mean = self.ATTR[attr] #this is a float value
+                        random_shape[0] = constant_mean
+                        self.ATTR[attr] = random_shape
                     else:
                         #populate random_shape with one entry over the whole lifetime.
                         constant_mean = self.ATTR[attr] #this is a float value

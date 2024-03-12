@@ -7,7 +7,7 @@ Created on Tue Feb 13 15:53:05 2024
 
 import numpy as np
 import matplotlib.pyplot as plt
-import pyproject as pp
+import profin as pp
 
 #%%
 #Scenario definition
