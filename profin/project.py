@@ -65,7 +65,12 @@ class Project(Indicators, Risks):
         self.ATTR["CAPEX"] = K_INVEST / LIFETIME
         # Yearly operational expenses, excluding energy inflow costs [US$/year]
         self.ATTR["OPEX"] = OPEX
-        
+        # Subsidy in an annual resolution.
+        self.ATTR["SUBSIDY"] = kwargs.get("SUBSIDY", 0)
+               
+        if self.ATTR["REPAYMENT_PERIOD"] > self.ATTR["LIFETIME"]:
+            raise Warning("Repayment period is longer than the analyzed project period. - Consider an open PRINCIPAL in the definition of the TERMINAL_VALUE")
+            
         #______FINANCIAL INDICATORS______
         # Share of equity in financing the project
         self.ATTR["EQUITY_SHARE"] = EQUITY_SHARE
@@ -155,6 +160,11 @@ class Project(Indicators, Risks):
                         constant_mean = self.ATTR[attr] #this is a float value
                         random_shape[0] = constant_mean
                         self.ATTR[attr] = random_shape
+                    elif attr == "TERMINAL_VALUE":
+                        #TERMINAL_VALUE is not an annually constant value. It's a one-time value (initial investment).
+                        constant_mean = self.ATTR[attr] #this is a float value
+                        random_shape[-1] = constant_mean
+                        self.ATTR[attr] = random_shape
                     else:
                         #populate random_shape with one entry over the whole lifetime.
                         constant_mean = self.ATTR[attr] #this is a float value
@@ -172,6 +182,11 @@ class Project(Indicators, Risks):
                         #K_INVEST is not an annually constant value. It's a one-time value (initial investment).
                         constant_mean = self.ATTR[attr] #this is a float value
                         random_shape[0] = constant_mean
+                        self.ATTR[attr] = random_shape
+                    elif attr == "TERMINAL_VALUE":
+                        #TERMINAL_VALUE is not an annually constant value. It's a one-time value (initial investment).
+                        constant_mean = self.ATTR[attr] #this is a float value
+                        random_shape[-1] = constant_mean
                         self.ATTR[attr] = random_shape
                     else:
                         #populate random_shape with one entry over the whole lifetime.

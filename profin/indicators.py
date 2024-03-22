@@ -132,33 +132,31 @@ class Indicators():
         NPV : int
 
         """
-                              
-        NPV = 0
         
         #Calculate the matrix for all timesteps and random distributions.
         OPERATING_CASHFLOW = (
-            self.ATTR["K_E_out"]*self.ATTR["E_out"] - 
+            self.ATTR["K_E_out"]*self.ATTR["E_out"] -
             self.ATTR["OPEX"] - 
             self.ATTR["K_E_in"]*self.ATTR["E_in"]
             ) * (1-self.ATTR["CORPORATE_TAX_RATE"])
          
-        #Discounting of annual cashflows and investments
-        for t in range(self.ATTR["LIFETIME"]):
-            NPV += (OPERATING_CASHFLOW[t] - self.ATTR["K_INVEST"][t]) / (1+WACC)**t
+        SUBSIDY = self.ATTR["SUBSIDY"].copy()
+
+        TERMINAL_VALUE = self.ATTR["TERMINAL_VALUE"].copy()
+
+        K_INVEST = self.ATTR["K_INVEST"].copy()
                 
-        #Accounting for terminal value and open principals.
-        LAST_YEAR = self.ATTR["LIFETIME"]        
-        NPV += self.ATTR["TERMINAL_VALUE"].mean(axis=0) / (1+WACC)**(LAST_YEAR-1)
-            
-        OPEN_PRINCIPAL = 0
+        RELEVANT_CASHFLOWS = (
+            OPERATING_CASHFLOW + 
+            SUBSIDY + 
+            TERMINAL_VALUE -
+            K_INVEST
+            )
+        
+        #Discounting of annual cashflows and investments
+        NPV = 0
         for t in range(self.ATTR["LIFETIME"]):
-            INVEST_T = self.ATTR["K_INVEST"][t]
-            TIME_TO_END = self.ATTR["LIFETIME"] - t
-            RATIO_OPEN_PRINCIPAL = 1-(TIME_TO_END / self.ATTR["REPAYMENT_PERIOD"])            
-            OPEN_PRINCIPAL_T = INVEST_T*self.ATTR["DEBT_SHARE"]*RATIO_OPEN_PRINCIPAL
-            OPEN_PRINCIPAL += OPEN_PRINCIPAL_T
-            
-        NPV -= OPEN_PRINCIPAL / (1+WACC)**(LAST_YEAR-1)
+            NPV += RELEVANT_CASHFLOWS[t] / (1+WACC)**t
         
         return NPV
 
@@ -232,6 +230,11 @@ class Indicators():
         return np.percentile(NPV, PERCENTILE)
     
     
+    def get_sharpe(self, IRR):
+        
+        return (IRR.mean() - self.ATTR["R_FREE"]) / IRR.std()
+    
+    
     def get_cashflows(self, WACC, **kwargs):
         """
         This methods calculates the mean and standard deviation of cashflows in each year.
@@ -250,14 +253,14 @@ class Indicators():
         # OPERATING CASHFLOW        
         #____Annual operating cashflows, non-discounted
         OPERATING_CASHFLOW = (
-            self.ATTR["K_E_out"]*self.ATTR["E_out"] - 
+            self.ATTR["K_E_out"]*self.ATTR["E_out"] -
             self.ATTR["OPEX"] - 
             self.ATTR["K_E_in"]*self.ATTR["E_in"]
             ).mean(axis=1) * (1-self.ATTR["CORPORATE_TAX_RATE"])
         
         OPERATING_CASHFLOW_STD = (
                 (
-                self.ATTR["K_E_out"]*self.ATTR["E_out"] - 
+                self.ATTR["K_E_out"]*self.ATTR["E_out"] -
                 self.ATTR["OPEX"] - 
                 self.ATTR["K_E_in"]*self.ATTR["E_in"]
                 ) * (1-self.ATTR["CORPORATE_TAX_RATE"])
@@ -274,16 +277,17 @@ class Indicators():
         #____Annual non-operating cashflow (interest, principal, dividends)
         NON_OPERATING_CASHFLOW = np.zeros(self.ATTR["LIFETIME"])
         #____interest on debt, principal payments and dividends
-        K_INTEREST_CUMSUM = self.ATTR["K_INVEST"].cumsum(axis=0)
-        ANNUAL_INTEREST = (K_INTEREST_CUMSUM.T*self.ATTR["DEBT_SHARE"]*self.ATTR["COST_OF_DEBT"]).T #assuming constant and linear interest payments
-        ANNUAL_PRINCIPAL = (K_INTEREST_CUMSUM.T*self.ATTR["DEBT_SHARE"] / self.ATTR["REPAYMENT_PERIOD"]).T #assuming constant and linear principal payments
+        K_INVEST_CUMSUM = self.ATTR["K_INVEST"].cumsum(axis=0)
+        ANNUAL_INTEREST = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"]*self.ATTR["COST_OF_DEBT"]).T #assuming constant and linear interest payments
+        ANNUAL_PRINCIPAL = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"] / self.ATTR["REPAYMENT_PERIOD"]).T #assuming constant and linear principal payments
         if self.ATTR["REPAYMENT_PERIOD"] < self.ATTR["LIFETIME"]:
             YEARS_WITHOUT_PRINCIPAL = self.ATTR["LIFETIME"] - self.ATTR["REPAYMENT_PERIOD"]
             ANNUAL_PRINCIPAL[-YEARS_WITHOUT_PRINCIPAL:] = 0
             ANNUAL_INTEREST[-YEARS_WITHOUT_PRINCIPAL:] = 0
         
-        ANNUAL_DIVIDENDS = (K_INTEREST_CUMSUM.T*self.ATTR["EQUITY_SHARE"]*self.ATTR["COST_OF_EQUITY"]).T #assuming constant and linear dividents
-        ANNUAL_SUM = -(ANNUAL_INTEREST + ANNUAL_PRINCIPAL + ANNUAL_DIVIDENDS)
+        ANNUAL_DIVIDENDS = (K_INVEST_CUMSUM.T*self.ATTR["EQUITY_SHARE"]*self.ATTR["COST_OF_EQUITY"]).T #assuming constant and linear dividents
+        ANNUAL_SUBSIDY = self.ATTR["SUBSIDY"].copy()
+        ANNUAL_SUM = ANNUAL_SUBSIDY-(ANNUAL_INTEREST + ANNUAL_PRINCIPAL + ANNUAL_DIVIDENDS)
         NON_OPERATING_CASHFLOW = ANNUAL_SUM.mean(axis=1)
         NON_OPERATING_CASHFLOW_STD = ANNUAL_SUM.std(axis=1)
         

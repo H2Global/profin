@@ -68,27 +68,30 @@ class Risks():
                 scale_temp = self.RISK_PARAM[SINGLE_RISK]["scale"]
             #get mean
             mean_temp = self.ATTR[SINGLE_RISK][timestep].mean()
-                        
-            if distribution_temp == "normal":
-                #normal distribution
-                normal_dist = stats.norm(
-                    loc=mean_temp, scale=scale_temp
-                    )
-                alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
-            elif distribution_temp == "positive-normal":
-                #truncated normal distribution, all values above mean
-                normal_dist = stats.norm(
-                    a=0, b=np.inf, loc=mean_temp, scale=scale_temp
-                    )
-                alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
-            elif distribution_temp == "negative-normal":
-                #truncated normal distribution, all values below mean
-                normal_dist = stats.norm(
-                    a=-np.inf, b=0, loc=mean_temp, scale=scale_temp
-                    )
-                alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
+            
+            if scale_temp == 0:
+                alpha = np.full(self.RANDOM_DRAWS, mean_temp)
             else:
-                raise AttributeError("Unknown distribution.")
+                if distribution_temp == "normal":
+                    #normal distribution
+                    normal_dist = stats.norm(
+                        loc=mean_temp, scale=scale_temp
+                        )
+                    alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
+                elif distribution_temp == "positive-normal":
+                    #truncated normal distribution, all values above mean
+                    normal_dist = stats.norm(
+                        a=0, b=np.inf, loc=mean_temp, scale=scale_temp
+                        )
+                    alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
+                elif distribution_temp == "negative-normal":
+                    #truncated normal distribution, all values below mean
+                    normal_dist = stats.norm(
+                        a=-np.inf, b=0, loc=mean_temp, scale=scale_temp
+                        )
+                    alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
+                else:
+                    raise AttributeError("Unknown distribution.")
                 
             RISKS = {}
             RISKS[SINGLE_RISK] = alpha
@@ -111,7 +114,7 @@ class Risks():
                 UNIFORMS[u] = stats.norm.cdf(MARGINALS[u])
                 
             #DEFINE MARGINAL DISTRIBUTIONS
-            DISTRIBUTIONS = {}
+            ALPHA_ARRAY = {}
             for r, risk in enumerate(self.RISK_PARAM):
                 #get scale 
                 if isinstance(self.RISK_PARAM[risk]["scale"] , np.ndarray):
@@ -122,24 +125,25 @@ class Risks():
                 #get loc/mean
                 loc_temp = self.ATTR[risk][timestep].mean()
 
-                if self.RISK_PARAM[risk]["distribution"] == "normal":
-                    DISTRIBUTIONS[r] = stats.norm(loc=loc_temp, scale=scale_temp)
-                elif self.RISK_PARAM[risk]["distribution"] == "positive-normal":
-                    #truncated normal distribution, with all values above the mean.
-                    DISTRIBUTIONS[r] = stats.truncnorm(a=0, b=np.inf, loc=loc_temp, scale=scale_temp)
-                elif self.RISK_PARAM[risk]["distribution"] == "negative-normal":
-                    #truncated normal distribution, with all values below the mean.
-                    DISTRIBUTIONS[r] = stats.truncnorm(a=-np.inf, b=0, loc=loc_temp, scale=scale_temp)
+                if scale_temp == 0:
+                    ALPHA_ARRAY[r] = np.full(self.RANDOM_DRAWS, loc_temp)
                 else:
-                    raise AttributeError("Unknown distribution.")
-                           
-            #DRAW VECTOR FROM COPULA
-            alpha = np.array(
-                list(zip([DISTRIBUTIONS[i].ppf(UNIFORMS[i]) for i in range(NO_RISKS)]))
-                )
-                   
+                    if self.RISK_PARAM[risk]["distribution"] == "normal":
+                        DIST = stats.norm(loc=loc_temp, scale=scale_temp)
+                        ALPHA_ARRAY[r] = DIST.ppf(UNIFORMS[r])
+                    elif self.RISK_PARAM[risk]["distribution"] == "positive-normal":
+                        #truncated normal distribution, with all values above the mean.
+                        DIST = stats.truncnorm(a=0, b=np.inf, loc=loc_temp, scale=scale_temp)
+                        ALPHA_ARRAY[r] = DIST.ppf(UNIFORMS[r])
+                    elif self.RISK_PARAM[risk]["distribution"] == "negative-normal":
+                        #truncated normal distribution, with all values below the mean.
+                        DIST = stats.truncnorm(a=-np.inf, b=0, loc=loc_temp, scale=scale_temp)
+                        ALPHA_ARRAY[r] = DIST.ppf(UNIFORMS[r])
+                    else:
+                        raise AttributeError("Unknown distribution.")
+                                              
             RISKS = {}
             for r, risk in enumerate(self.RISK_PARAM):
-                RISKS[risk] = alpha[r][0]
+                RISKS[risk] = ALPHA_ARRAY[r]
                 
         return RISKS
