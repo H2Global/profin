@@ -31,18 +31,23 @@ TECHNICAL_LIFETIME=30
 #O&M costs, including labour costs - https://ehb.eu/page/estimated-investment-cost
 OPEX=45*1e+6
 
+#SUBSIDY
+#SUBSIDY = np.zeros(shape=30)
+#SUBSIDY[0] = 680*1e+6
 
 #UTILIZATION
 #____Linear increase of capacity bookings
 utilization_curve = np.linspace(0,1,TECHNICAL_LIFETIME)
+utilization_80_percent = 0.8
 #____Pipeline thoughput
-E_in=(306.636*1e+6*365)*utilization_curve #kWh hydrogen throughput
+E_max = 306.636*1e+6*365
+E_in= E_max * utilization_80_percent#*utilization_curve #kWh hydrogen throughput
 #____Electricity price USD/kWh = No costs.
 K_E_in=0
 #____Pipeline thoughput
-E_out=(306.636*1e+6*365)*utilization_curve
-#____Hydrogen price in USD/kWh --> Service cost to transport hydrogen for 1000 km.
-K_E_out=0.01 #€/kWh-transported
+E_out= E_max * utilization_80_percent#*utilization_curve
+#____Hydrogen price in USD/kWh --> Service cost to transport hydrogen for 1000 km. --> Derived from SCENARIO: CAPACITY BOOKINGS = 80% constantly
+K_E_out=0.0041 #€/kWh-transported
 
 
 #FINANCIAL METRICS
@@ -61,6 +66,10 @@ RISK_PARAM = {
                 "K_INVEST" : {
                     "distribution" : "normal",
                     "scale" : K_INVEST_STD,
+                    "limit" : {
+                        "min" : K_INVEST*0.8,
+                        "max" : K_INVEST*5
+                        },
                     "correlation" : {
                         "MSCI" : 0.1,
                         "E_out" : 0.1
@@ -69,6 +78,10 @@ RISK_PARAM = {
                 "E_out" : {
                     "distribution" : "normal",
                     "scale" : E_out*0.2,
+                    "limit" : {
+                        "min" : 0,
+                        "max" : E_max
+                        },
                     "correlation" : {
                         "MSCI" : 0.1,
                         "K_INVEST" : 0.1
@@ -95,7 +108,7 @@ p_example = pp.Project(
                  RISK_PARAM=RISK_PARAM,
                  OBSERVE_PAST=0,
                  ENDOGENOUS_BETA=False,
-                 REPAYMENT_PERIOD=DEPRECIATION_PERIOD
+                 REPAYMENT_PERIOD=DEPRECIATION_PERIOD,
                  )
 
 #%%CALCULATION OF FINANCIAL METRICS
@@ -108,10 +121,6 @@ print("____WACC:", WACC.mean())
 NPV = p_example.get_NPV(WACC)
 print("____mean NPV:", NPV.mean())
 
-# Calculate Internal Rate of Return (IRR)
-IRR = p_example.get_IRR()
-print("____IRR:", IRR.mean())
-
 # Calculate the value-at-risk (VaR)
 VaR = p_example.get_VaR(NPV)
 print("____VaR:", VaR)
@@ -119,7 +128,13 @@ print("____VaR:", VaR)
 LCOE = p_example.get_LCOE(WACC)
 print("____LCOE:", LCOE.mean())
 
+#%%
+# Calculate Internal Rate of Return (IRR)
+IRR = p_example.get_IRR()
+print("____IRR:", IRR.mean())
+
 SHARPE = p_example.get_sharpe(IRR)
+print("____SHARPE:", SHARPE.mean())
 
 # Operating and non-operating cashflows
 operating_cashflow, operating_cashflow_std, non_operating_cashflow, non_operating_cashflow_std = p_example.get_cashflows(WACC)
@@ -140,7 +155,21 @@ STORE_RESULTS = {
     "NOCF_std" : non_operating_cashflow_std,  
     "Offtake_Value" : Offtake_Value
     }
-    
+
+#%% Analysis of subsidy payments
+
+#CAPEX Funding
+subsidy_CAPEX = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="INITIAL", WACC=WACC)
+
+#ANNUALLY CONSTAND Funding --> Can be used to derive H2Global mechanism or any kind of long-term offtake agreement + subsidy
+subsidy_ANNUALLY_CONSTANT = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="ANNUALLY_CONSTANT", WACC=WACC)
+
+#FIXED_PREMIUM FUNDING
+subsidy_FIXED_PREMIUM = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="FIXED_PREMIUM", WACC=WACC)
+
+#CFD Funding
+subsidy_CFD = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="CFD", WACC=WACC)
+
 #%% Visualize annual non-discounted cashflows   
 LIFETIME_TEMP = STORE_RESULTS["ATTR"]["LIFETIME"]
 years = np.arange(START_YEAR, LIFETIME_TEMP+START_YEAR)

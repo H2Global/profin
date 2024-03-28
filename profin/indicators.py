@@ -121,7 +121,7 @@ class Indicators():
         return EFFICIENCY
 
 
-    def get_NPV(self, WACC):
+    def get_NPV(self, WACC, **kwargs):
         """
         This methods calculates the net present value of the energy project in US$,
         considering future developments of interest rates and country-specific
@@ -132,6 +132,8 @@ class Indicators():
         NPV : int
 
         """
+        
+        period_to_analyze = kwargs.get("PERIOD", self.ATTR["LIFETIME"])
         
         #Calculate the matrix for all timesteps and random distributions.
         OPERATING_CASHFLOW = (
@@ -155,7 +157,7 @@ class Indicators():
         
         #Discounting of annual cashflows and investments
         NPV = 0
-        for t in range(self.ATTR["LIFETIME"]):
+        for t in range(period_to_analyze):
             NPV += RELEVANT_CASHFLOWS[t] / (1+WACC)**t
         
         return NPV
@@ -175,6 +177,7 @@ class Indicators():
         IRR = so.fsolve(self.get_NPV, x_init)
         
         if IRR.mean() > 0.5:
+            print("IRR Mean: ", IRR.mean())
             raise Warning("Internal rate of return >50%. Please check your assumptions.")
         
         return IRR        
@@ -302,3 +305,142 @@ class Indicators():
             return OPERATING_CASHFLOW_DISCOUNTED, OPERATING_CASHFLOW_STD_DISCOUNTED, NON_OPERATING_CASHFLOW_DISCOUNTED, NON_OPERATING_CASHFLOW_STD_DISCOUNTED
         else:
             return OPERATING_CASHFLOW, OPERATING_CASHFLOW_STD, NON_OPERATING_CASHFLOW, NON_OPERATING_CASHFLOW_STD
+        
+        
+    def get_NPV_Subsidy_Annually_Constant(self, ANNUAL_SUBSIDY, npv_target, WACC, PERIOD):
+        """
+        This methods calculates the net present value of the energy project in US$,
+        considering future developments of interest rates and country-specific
+        developments.
+
+        Returns
+        -------
+        NPV : int
+
+        """
+        
+        period_to_analyze = PERIOD
+        
+        #Calculate the matrix for all timesteps and random distributions.
+        OPERATING_CASHFLOW = (
+            self.ATTR["K_E_out"]*self.ATTR["E_out"] -
+            self.ATTR["OPEX"] - 
+            self.ATTR["K_E_in"]*self.ATTR["E_in"]
+            ) * (1-self.ATTR["CORPORATE_TAX_RATE"])
+         
+        TERMINAL_VALUE = self.ATTR["TERMINAL_VALUE"].copy()
+
+        K_INVEST = self.ATTR["K_INVEST"].copy()
+                
+        RELEVANT_CASHFLOWS = (
+            OPERATING_CASHFLOW + 
+            ANNUAL_SUBSIDY + 
+            TERMINAL_VALUE -
+            K_INVEST
+            )
+        
+        #Discounting of annual cashflows and investments
+        NPV = -npv_target
+        for t in range(period_to_analyze):
+            NPV += RELEVANT_CASHFLOWS[t] / (1+WACC)**t
+        
+        return NPV
+    
+    
+    def get_NPV_Subsidy_Fixed_Premium(self, FIXED_PREMIUM, npv_target, WACC, PERIOD):
+        """
+        This methods calculates the net present value of the energy project in US$,
+        considering future developments of interest rates and country-specific
+        developments.
+
+        Returns
+        -------
+        NPV : int
+
+        """
+        
+        period_to_analyze = PERIOD
+        
+        #Calculate the matrix for all timesteps and random distributions.
+        OPERATING_CASHFLOW = (
+            (self.ATTR["K_E_out"]+FIXED_PREMIUM)*self.ATTR["E_out"] -
+            self.ATTR["OPEX"] - 
+            self.ATTR["K_E_in"]*self.ATTR["E_in"]
+            ) * (1-self.ATTR["CORPORATE_TAX_RATE"])
+         
+        TERMINAL_VALUE = self.ATTR["TERMINAL_VALUE"].copy()
+
+        K_INVEST = self.ATTR["K_INVEST"].copy()
+                
+        RELEVANT_CASHFLOWS = (
+            OPERATING_CASHFLOW + 
+            TERMINAL_VALUE -
+            K_INVEST
+            )
+        
+        #Discounting of annual cashflows and investments
+        NPV = -npv_target
+        for t in range(period_to_analyze):
+            NPV += RELEVANT_CASHFLOWS[t] / (1+WACC)**t
+        
+        return NPV
+
+    
+    
+    def get_subsidy(self, npv_target, depreciation_target, subsidy_scheme, WACC):
+        """
+        This method returns the required subsidy to reach the defined
+        net present value target after a given depreciation period and
+        for a given subsidy scheme. 
+        Available subsidy schemes: 1) Initial subsidy (e.g. CAPEX), 
+        2) annually constant subsidy (e.g. H2Global), 3) CFD, 4) Fixed Premium
+
+        Parameters
+        ----------
+        npv_target : TYPE
+            DESCRIPTION.
+        depreciation_target : TYPE
+            DESCRIPTION.
+        subsidy_scheme : TYPE
+            DESCRIPTION.
+        WACC : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        if subsidy_scheme == "INITIAL":
+            npv_temp = self.get_NPV(WACC, PERIOD=depreciation_target)
+            subsidy = npv_target - npv_temp
+            
+        elif subsidy_scheme == "ANNUALLY_CONSTANT":
+            x_init = np.full(self.RANDOM_DRAWS, 1e+6)
+            subsidy = so.fsolve(self.get_NPV_Subsidy_Annually_Constant, x_init, args=(npv_target,WACC,depreciation_target))
+
+        elif subsidy_scheme == "FIXED_PREMIUM":
+            x_init = np.full(self.RANDOM_DRAWS, 0.1)
+            subsidy = so.fsolve(self.get_NPV_Subsidy_Fixed_Premium, x_init, args=(npv_target,WACC,depreciation_target))
+
+        elif subsidy_scheme == "CFD":
+            OPERATING_CASHFLOW, OPERATING_CASHFLOW_STD, NON_OPERATING_CASHFLOW, NON_OPERATING_CASHFLOW_STD = self.get_cashflows(WACC)
+            subsidy = -(OPERATING_CASHFLOW + NON_OPERATING_CASHFLOW)
+        
+        else:
+            raise AttributeError("No such subsidy scheme defined.") 
+
+        return subsidy
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

@@ -61,11 +61,21 @@ class Risks():
             #get distribution type
             distribution_temp = self.RISK_PARAM[SINGLE_RISK]["distribution"] 
             #get scale parameter (e.g. standard deviation)
-            if isinstance(self.RISK_PARAM[SINGLE_RISK]["scale"] , np.ndarray):
+            if isinstance(self.RISK_PARAM[SINGLE_RISK]["scale"] , np.ndarray) or isinstance(self.RISK_PARAM[SINGLE_RISK]["scale"] , list):
                 scale_temp = self.RISK_PARAM[SINGLE_RISK]["scale"][timestep]
             else:
                 #scale parameter is an int or float
                 scale_temp = self.RISK_PARAM[SINGLE_RISK]["scale"]
+                
+            if "limit" in list(self.RISK_PARAM[SINGLE_RISK]):
+                if isinstance(self.RISK_PARAM[SINGLE_RISK]["limit"]["max"] , np.ndarray) or isinstance(self.RISK_PARAM[SINGLE_RISK]["limit"]["max"] , list):
+                    max_trunc = self.RISK_PARAM[SINGLE_RISK]["limit"]["max"][timestep]
+                    min_trunc = self.RISK_PARAM[SINGLE_RISK]["limit"]["min"][timestep]
+                else:
+                    #scale parameter is an int or float
+                    max_trunc = self.RISK_PARAM[SINGLE_RISK]["limit"]["max"]
+                    min_trunc = self.RISK_PARAM[SINGLE_RISK]["limit"]["min"]
+                    
             #get mean
             mean_temp = self.ATTR[SINGLE_RISK][timestep].mean()
             
@@ -73,20 +83,28 @@ class Risks():
                 alpha = np.full(self.RANDOM_DRAWS, mean_temp)
             else:
                 if distribution_temp == "normal":
-                    #normal distribution
-                    normal_dist = stats.norm(
-                        loc=mean_temp, scale=scale_temp
-                        )
-                    alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
+                    if "limit" in list(self.RISK_PARAM[SINGLE_RISK]):
+                        max_scale = (max_trunc - mean_temp) / scale_temp
+                        min_scale = (min_trunc - mean_temp) / scale_temp
+                        
+                        #truncated normal distribution
+                        normal_dist = stats.truncnorm(
+                            a=min_scale, b=max_scale, loc=mean_temp, scale=scale_temp
+                            )
+                        alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
+                    else:
+                        #normal distribution
+                        normal_dist = stats.norm(loc=mean_temp, scale=scale_temp)
+                        alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
                 elif distribution_temp == "positive-normal":
                     #truncated normal distribution, all values above mean
-                    normal_dist = stats.norm(
+                    normal_dist = stats.truncnorm(
                         a=0, b=np.inf, loc=mean_temp, scale=scale_temp
                         )
                     alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
                 elif distribution_temp == "negative-normal":
                     #truncated normal distribution, all values below mean
-                    normal_dist = stats.norm(
+                    normal_dist = stats.truncnorm(
                         a=-np.inf, b=0, loc=mean_temp, scale=scale_temp
                         )
                     alpha = normal_dist.rvs(size=self.RANDOM_DRAWS)
@@ -117,27 +135,47 @@ class Risks():
             ALPHA_ARRAY = {}
             for r, risk in enumerate(self.RISK_PARAM):
                 #get scale 
-                if isinstance(self.RISK_PARAM[risk]["scale"] , np.ndarray):
+                if isinstance(self.RISK_PARAM[risk]["scale"] , np.ndarray) or isinstance(self.RISK_PARAM[risk]["scale"] , list):
                     scale_temp = self.RISK_PARAM[risk]["scale"][timestep]
                 else:
                     #scale parameter is an int or float
                     scale_temp = self.RISK_PARAM[risk]["scale"]
                 #get loc/mean
-                loc_temp = self.ATTR[risk][timestep].mean()
+                mean_temp = self.ATTR[risk][timestep].mean()
+
+                #get limits for truncated distribution
+                if "limit" in list(self.RISK_PARAM[risk]):
+                    if isinstance(self.RISK_PARAM[risk]["limit"]["max"], np.ndarray) or isinstance(self.RISK_PARAM[risk]["limit"]["max"], list):
+                        max_trunc = self.RISK_PARAM[risk]["limit"]["max"][timestep]
+                        min_trunc = self.RISK_PARAM[risk]["limit"]["min"][timestep]
+                    else:
+
+                        #scale parameter is an int or float
+                        max_trunc = self.RISK_PARAM[risk]["limit"]["max"]
+                        min_trunc = self.RISK_PARAM[risk]["limit"]["min"]
 
                 if scale_temp == 0:
-                    ALPHA_ARRAY[r] = np.full(self.RANDOM_DRAWS, loc_temp)
+                    ALPHA_ARRAY[r] = np.full(self.RANDOM_DRAWS, mean_temp)
                 else:
                     if self.RISK_PARAM[risk]["distribution"] == "normal":
-                        DIST = stats.norm(loc=loc_temp, scale=scale_temp)
-                        ALPHA_ARRAY[r] = DIST.ppf(UNIFORMS[r])
+                        if "limit" in list(self.RISK_PARAM[risk]):
+                            max_scale = (max_trunc - mean_temp) / scale_temp
+                            min_scale = (min_trunc - mean_temp) / scale_temp                           
+                            #truncated normal distribution
+                            DIST = stats.truncnorm(
+                                a=min_scale, b=max_scale, loc=mean_temp, scale=scale_temp
+                                )
+                            ALPHA_ARRAY[r] = DIST.ppf(UNIFORMS[r])
+                        else:
+                            DIST = stats.norm(loc=mean_temp, scale=scale_temp)
+                            ALPHA_ARRAY[r] = DIST.ppf(UNIFORMS[r])
                     elif self.RISK_PARAM[risk]["distribution"] == "positive-normal":
                         #truncated normal distribution, with all values above the mean.
-                        DIST = stats.truncnorm(a=0, b=np.inf, loc=loc_temp, scale=scale_temp)
+                        DIST = stats.truncnorm(a=0, b=np.inf, loc=mean_temp, scale=scale_temp)
                         ALPHA_ARRAY[r] = DIST.ppf(UNIFORMS[r])
                     elif self.RISK_PARAM[risk]["distribution"] == "negative-normal":
                         #truncated normal distribution, with all values below the mean.
-                        DIST = stats.truncnorm(a=-np.inf, b=0, loc=loc_temp, scale=scale_temp)
+                        DIST = stats.truncnorm(a=-np.inf, b=0, loc=mean_temp, scale=scale_temp)
                         ALPHA_ARRAY[r] = DIST.ppf(UNIFORMS[r])
                     else:
                         raise AttributeError("Unknown distribution.")
