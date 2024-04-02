@@ -427,7 +427,7 @@ class Indicators():
         elif subsidy_scheme == "CFD":
             OPERATING_CASHFLOW, OPERATING_CASHFLOW_STD, NON_OPERATING_CASHFLOW, NON_OPERATING_CASHFLOW_STD = self.get_cashflows(WACC)
             subsidy = -(OPERATING_CASHFLOW + NON_OPERATING_CASHFLOW)
-        
+            print("WARNING: Given NPV-target might not be achieved, since CfD-funding only balances out cashflows! For NPV = 0 align the depreciation_target with the depreciation-period for the whole projects.")
         else:
             raise AttributeError("No such subsidy scheme defined.") 
 

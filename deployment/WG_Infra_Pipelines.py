@@ -41,11 +41,11 @@ utilization_curve = np.linspace(0,1,TECHNICAL_LIFETIME)
 utilization_80_percent = 0.8
 #____Pipeline thoughput
 E_max = 306.636*1e+6*365
-E_in= E_max * utilization_80_percent#*utilization_curve #kWh hydrogen throughput
+E_in= E_max * utilization_curve #kWh hydrogen throughput
 #____Electricity price USD/kWh = No costs.
 K_E_in=0
 #____Pipeline thoughput
-E_out= E_max * utilization_80_percent#*utilization_curve
+E_out= E_max * utilization_curve
 #____Hydrogen price in USD/kWh --> Service cost to transport hydrogen for 1000 km. --> Derived from SCENARIO: CAPACITY BOOKINGS = 80% constantly
 K_E_out=0.0041 #€/kWh-transported
 
@@ -93,18 +93,18 @@ RISK_PARAM = {
 
 #Initialize Project-object
 p_example = pp.Project(
-                 E_in=E_in, #Electricity demand in kWh per year
-                 E_out=E_out, #Cesaro et al. H2-production * 70% HB-efficiency
-                 K_E_in=K_E_in, #electricity price
+                 E_in=E_in, 
+                 E_out=E_out, 
+                 K_E_in=K_E_in, 
                  K_E_out=K_E_out,
-                 K_INVEST=K_INVEST, #Cesaro et al.
+                 K_INVEST=K_INVEST, 
                  TERMINAL_VALUE=TERMINAL_VALUE,
                  LIFETIME=TECHNICAL_LIFETIME,
-                 OPEX=OPEX, #1.5% of CAPEX
+                 OPEX=OPEX, 
                  EQUITY_SHARE=EQUITY_SHARE,
-                 COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM, #Damodaran CRP for Kenya: 9.86%
+                 COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM, 
                  INTEREST=INTEREST,
-                 CORPORATE_TAX_RATE=CORPORATE_TAX_RATE, #Damodaran for Kenya: 30%
+                 CORPORATE_TAX_RATE=CORPORATE_TAX_RATE, 
                  RISK_PARAM=RISK_PARAM,
                  OBSERVE_PAST=0,
                  ENDOGENOUS_BETA=False,
@@ -162,7 +162,7 @@ STORE_RESULTS = {
 subsidy_CAPEX = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="INITIAL", WACC=WACC)
 print("Mean CAPEX funding:", round(subsidy_CAPEX.mean()*1e-6, 1), " Million €")
 
-#ANNUALLY CONSTAND Funding --> Can be used to derive H2Global mechanism or any kind of long-term offtake agreement + subsidy
+#ANNUALLY CONSTANT Funding --> Can be used to derive H2Global mechanism or any kind of long-term offtake agreement + subsidy
 subsidy_ANNUALLY_CONSTANT = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="ANNUALLY_CONSTANT", WACC=WACC)
 print("Mean annually constant funding (offtake-agreement like subsidy):", round(subsidy_ANNUALLY_CONSTANT.mean()*1e-6, 1), " Million €")
 
@@ -173,7 +173,7 @@ print("Mean fixed premium:", round(subsidy_FIXED_PREMIUM.mean()*100*33.33, 1), "
 
 #CFD Funding
 subsidy_CFD = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="CFD", WACC=WACC)
-print("Mean annual subsidy under CfD (considering repayments, if there are any):", round(subsidy_CFD.mean()*1e-6, 1), " Million €")
+print("Mean annual subsidy over full project period under CfD (considering repayments, if there are any):", round(subsidy_CFD.mean()*1e-6, 1), " Million €")
 
 #%% Visualize annual non-discounted cashflows   
 LIFETIME_TEMP = STORE_RESULTS["ATTR"]["LIFETIME"]
