@@ -160,15 +160,20 @@ STORE_RESULTS = {
 
 #CAPEX Funding
 subsidy_CAPEX = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="INITIAL", WACC=WACC)
+print("Mean CAPEX funding:", round(subsidy_CAPEX.mean()*1e-6, 1), " Million €")
 
 #ANNUALLY CONSTAND Funding --> Can be used to derive H2Global mechanism or any kind of long-term offtake agreement + subsidy
 subsidy_ANNUALLY_CONSTANT = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="ANNUALLY_CONSTANT", WACC=WACC)
+print("Mean annually constant funding (offtake-agreement like subsidy):", round(subsidy_ANNUALLY_CONSTANT.mean()*1e-6, 1), " Million €")
 
 #FIXED_PREMIUM FUNDING
 subsidy_FIXED_PREMIUM = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="FIXED_PREMIUM", WACC=WACC)
+print("Mean fixed premium:", round(subsidy_FIXED_PREMIUM.mean()*100, 1), " €-ct./kWh")
+print("Mean fixed premium:", round(subsidy_FIXED_PREMIUM.mean()*100*33.33, 1), " €-ct./kg-H2")
 
 #CFD Funding
 subsidy_CFD = p_example.get_subsidy(npv_target=0, depreciation_target=10, subsidy_scheme="CFD", WACC=WACC)
+print("Mean annual subsidy under CfD (considering repayments, if there are any):", round(subsidy_CFD.mean()*1e-6, 1), " Million €")
 
 #%% Visualize annual non-discounted cashflows   
 LIFETIME_TEMP = STORE_RESULTS["ATTR"]["LIFETIME"]
