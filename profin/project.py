@@ -41,6 +41,85 @@ class Project(Indicators, Risks):
                  RISK_PARAM,
                  **kwargs
                  ):
+        """
+        This method initializes an instance of class "Project"
+
+        Parameters
+        ----------
+        E_in : int, float, array
+            This is the annual energy input of the project.
+        E_out : int, float, array
+            This is the annual energy output of the project.
+        K_E_in : int, float, array
+            The is the cost of the energy input per kWh.
+        K_E_out : int, float, array
+            This is the cost of the energy output per kWh - Determines the revenue with E_out.
+        K_INVEST : int, float, array
+            This is the annual investment into the project.
+        TERMINAL_VALUE : int, float, array
+            This is the final sales value.
+        LIFETIME : int
+            This is the analyzed lifetime of the project. All cashflows are calculated for this lifetime.
+        OPEX : int, float, array
+            Annual operational expenditure.
+        EQUITY_SHARE : float, array
+            Share of equity investment compared to total capital structure (debt + equity).
+        COUNTRY_RISK_PREMIUM : int, float, array
+            This is the additional expected return of equity investors, when facing the investments in the respective country.
+        INTEREST : int, float, array
+            Interest rate to be paid on the debt capital (e.g. bank loan).
+        CORPORATE_TAX_RATE : int, float, array
+            This is the tax rate the project must pay within the country of operation.
+        RISK_PARAM : dict
+            This dictionary is essential for the class "Risks".
+            Example: 
+                RISK_PARAM = {
+                    "K_INVEST" : {
+                        "distribution" : "normal",
+                        "scale_start" : 20000,
+                        "scale_end" : 10000,
+                        "correlation" : {
+                            "MSCI" : 0.9,
+                            "K_E_in" : 0.5
+                            }
+                        }
+                    }
+            For each parameter, stochastic distribution functions can be
+            defined, which determine the fluctuation around the mean values
+            within the Monte-Carlo simulation.
+        **kwargs REPAYMENT_PERIOD : int
+            This parameter is the repayment period for bank loans and the 
+            depreciation period for equity capital. 
+            It defaults to the LIFETIME of the project.
+        **kwargs SUBSIDY : float, int, array
+            This parameter defined the annual subsidy for the project.
+            Defaults to 0.
+        **kwargs CRP_EXPOSURE : float
+            This parameter defines how much the project is exposed to 
+            country risk. It varies between 0-1 and defaults to 1.
+        **kwargs BETA_UNLEVERED : float
+            This parameter defines the unlevered BETA factor of the project
+            and defaults to 0.54.
+        **kwargs ENDOGENOUS_PROJECT_RISK : boolean
+            This parameter defines, whether an additional, project-specific
+            risk shall be calculated from RISK_PARAM.
+            REFERENCE: Deloitte (2024): "Financing the Green Energy Transition: 
+                Innovative financing for a just transition"
+
+        Raises
+        ------
+        Warning
+            DESCRIPTION.
+        ValueError
+            DESCRIPTION.
+        AttributeError
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
         
         self.ATTR = {}
         
@@ -126,11 +205,15 @@ class Project(Indicators, Risks):
         self.ATTR["R_FREE"] = RISK_FREE_RATE
         # Equity risk premium of mature market (US-market)
         CORR_SP500_MSCIW = np.corrcoef(SP500_daily_returns[1:], MSCI_ACWI_daily_returns[1:])[0,1]
-        self.ATTR["ERP_MATURE"] = (SP500_annual_returns.mean() - RISK_FREE_RATE) / CORR_SP500_MSCIW
-   
+        ERP_MATURE_EXT = kwargs.get("ERP_MATURE", -1)
+        if ERP_MATURE_EXT == -1:
+            self.ATTR["ERP_MATURE"] = (SP500_annual_returns.mean() - RISK_FREE_RATE) / CORR_SP500_MSCIW
+        else:
+            self.ATTR["ERP_MATURE"] = np.float64(ERP_MATURE_EXT)
+            
         # Derived from balance sheets and income statements of H2Global donors
         self.ATTR["BETA_UNLEVERED"] = kwargs.get("BETA_UNLEVERED", 0.54) #0.54 for damodaran green & renewables sector; 0.47 for H2Global donors
-        self.ATTR["ENDOGENOUS_BETA"] = kwargs.get("ENDOGENOUS_BETA", False)
+        self.ATTR["ENDOGENOUS_PROJECT_RISK"] = kwargs.get("ENDOGENOUS_PROJECT_RISK", False)
                     
         # Indication of risks
         self.RANDOM_DRAWS = kwargs.get("RANDOM_DRAWS", 2000)
@@ -174,7 +257,7 @@ class Project(Indicators, Risks):
                     if attr in ["INTEREST", "LIFETIME", "REPAYMENT_PERIOD", 
                                 "EQUITY_SHARE", "CRP", "CRP_EXPOSURE", 
                                 "CORPORATE_TAX_RATE", "DEBT_SHARE", "R_FREE",
-                                "MSCI", "ERP_MATURE", "BETA_UNLEVERED", "ENDOGENOUS_BETA",
+                                "MSCI", "ERP_MATURE", "BETA_UNLEVERED", "ENDOGENOUS_PROJECT_RISK",
                                 ]:
                         #exclude some attributes from conversion to matrix form.
                         continue

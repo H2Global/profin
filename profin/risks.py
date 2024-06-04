@@ -21,14 +21,12 @@ class Risks():
         distribution : string
             Defines the type of probability distribution. 
             Currently only "normal" distribution possible.
-        scale_start : float
+        scale : float or np.array
             Scale parameter for probability distribution (e.g. standard deviation
-            for normal distribution) at project start.
-        scale_end : float
-            Scale parameter for probability distribution (e.g. standard deviation
-            for normal distribution) at project end. -> Scale parameter
-            for years in between start and end year are determined via 
-            linear interpolation by default.
+            for normal distribution). Provide array, if the scale parameter
+            varies by year.
+        limit : dict
+            Defines the minimum and maximum value for the standard deviation.
         correlation : dict
             Dictionary, which indicates the correlation of a risk parameter
             to other risk parameters and the MSCI ACWI. Correlation to 
@@ -38,8 +36,11 @@ class Risks():
             RISK_PARAM = {
                 "K_INVEST" : {
                     "distribution" : "normal",
-                    "scale_start" : 20000,
-                    "scale_end" : 10000,
+                    "scale" : float to np.array,
+                    "limit" : {
+                        "min" : 0.9,
+                        "max" : 0.5
+                        },
                     "correlation" : {
                         "MSCI" : 0.9,
                         "K_E_in" : 0.5
@@ -149,7 +150,6 @@ class Risks():
                         max_trunc = self.RISK_PARAM[risk]["limit"]["max"][timestep]
                         min_trunc = self.RISK_PARAM[risk]["limit"]["min"][timestep]
                     else:
-
                         #scale parameter is an int or float
                         max_trunc = self.RISK_PARAM[risk]["limit"]["max"]
                         min_trunc = self.RISK_PARAM[risk]["limit"]["min"]

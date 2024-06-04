@@ -52,57 +52,33 @@ class Indicators():
         WACC : np.array
 
         """
-        if self.ATTR["ENDOGENOUS_BETA"]:
-            print("BETA is not given and, thus, is calculated internally.")
-            
+        print("Unlevered BETA is exogenously defined to:", self.ATTR["BETA_UNLEVERED"])
+        Debt_to_Equity = self.ATTR["DEBT_SHARE"] / (1-self.ATTR["DEBT_SHARE"])
+        LEVER = 1+((1-self.ATTR["CORPORATE_TAX_RATE"])*Debt_to_Equity)
+        self.ATTR["BETA"] = self.ATTR["BETA_UNLEVERED"] * LEVER
+        print("Levered BETA is calculated to:", self.ATTR["BETA"])
+        
+        if self.ATTR["ENDOGENOUS_PROJECT_RISK"]:
+            print("Project risks are calculated endogenously.")
             #Internal rate of return (NPV == 0) serves as return estimate.
-            ASSET_RETURN = self.get_IRR() #np.random.normal(0.08, 0.01, 1000)
-            if ASSET_RETURN.mean() > 0.5:
-                raise Warning("Internal rate of return >50%. Please check your assumptions.")
-            #The return of the reference market is averaged over lifetime
-            GLOBAL_MARKET_RETURN_MEAN = self.ATTR["MSCI"].mean(axis=0)
-
-            self.ATTR["BETA_UNLEVERED"] = self.get_BETA(GLOBAL_MARKET_RETURN_MEAN, ASSET_RETURN)
-            print("Unlevered BETA is calculated to:", self.ATTR["BETA_UNLEVERED"])
-            Debt_to_Equity = self.ATTR["DEBT_SHARE"] / (1-self.ATTR["DEBT_SHARE"])
-            LEVER = 1+((1-self.ATTR["CORPORATE_TAX_RATE"])*Debt_to_Equity)
-            self.ATTR["BETA"] = self.ATTR["BETA_UNLEVERED"] * LEVER
-            print("Levered BETA is calculated to:", self.ATTR["BETA"])
-
-            #unsystemic risk - this is calculated, but not further processed.
-            #This type of risk can be erased by diversification on the side of
-            #the equity investor.
-            self.ATTR["UNSYSTEMIC_RISK"] = np.std(ASSET_RETURN)
+            IRR = self.get_IRR()
+            self.ATTR["SP"] = np.percentile(IRR, 0.5)-np.percentile(IRR, 0.1)
+            print("Project-specific risk:", round(self.ATTR["SP"]*100, 2), "%")
 
         else:
-            print("Unlevered BETA is exogenously defined to:", self.ATTR["BETA_UNLEVERED"])
-            Debt_to_Equity = self.ATTR["DEBT_SHARE"] / (1-self.ATTR["DEBT_SHARE"])
-            LEVER = 1+((1-self.ATTR["CORPORATE_TAX_RATE"])*Debt_to_Equity)
-            self.ATTR["BETA"] = self.ATTR["BETA_UNLEVERED"] * LEVER
-            print("Levered BETA is calculated to:", self.ATTR["BETA"])
+            #Project-specific risk is assumed to be zero.
+            self.ATTR["SP"] = 0
         
         self.ATTR["COST_OF_EQUITY"] = (
             self.ATTR["R_FREE"] + 
             self.ATTR["BETA"] * self.ATTR["ERP_MATURE"] + 
-            self.ATTR["CRP"] * self.ATTR["CRP_EXPOSURE"]
+            self.ATTR["CRP"] * self.ATTR["CRP_EXPOSURE"] + 
+            self.ATTR["SP"]
             )
         
-        self.ATTR["COST_OF_DEBT"] = self.ATTR["INTEREST"] * (1-self.ATTR["CORPORATE_TAX_RATE"])
+        self.ATTR["COST_OF_DEBT"] = (self.ATTR["INTEREST"]+self.ATTR["CRP"]) * (1-self.ATTR["CORPORATE_TAX_RATE"])
         
         WACC = self.ATTR["EQUITY_SHARE"] * self.ATTR["COST_OF_EQUITY"] + self.ATTR["DEBT_SHARE"] * self.ATTR["COST_OF_DEBT"]
-
-# =============================================================================
-#         if isinstance(WACC, int) or isinstance(WACC, float):
-#             WACC_MATRIX = np.zeros(shape=(self.ATTR["LIFETIME"],self.RANDOM_DRAWS))
-#             WACC_MATRIX[:] = WACC
-#         elif isinstance(WACC, np.ndarray):
-#             WACC_MATRIX = np.zeros(shape=(self.ATTR["LIFETIME"],self.RANDOM_DRAWS))
-#             WACC_MATRIX[:,:] = WACC[:, np.newaxis]
-# 
-#         if WACC_MATRIX.shape != (self.ATTR["LIFETIME"],self.RANDOM_DRAWS):
-#             raise AttributeError("WACC_MATRIX does not have the right shape. Shape is:", WACC_MATRIX.shape)
-# 
-# =============================================================================
 
         return WACC
     
@@ -163,7 +139,7 @@ class Indicators():
         return NPV
 
 
-    def get_IRR(self):
+    def get_IRR(self, **kwargs):
         """
         This methods calculates the IRR (Internal rate of return).
 
@@ -173,7 +149,8 @@ class Indicators():
 
         """
         
-        x_init = np.full(self.RANDOM_DRAWS, 0.05)
+        INITIAL = kwargs.get("INITIAL_VALUE", 0.05)
+        x_init = np.full(self.RANDOM_DRAWS, INITIAL)
         IRR = so.fsolve(self.get_NPV, x_init)
         
         if IRR.mean() > 0.5:
@@ -212,7 +189,7 @@ class Indicators():
         return LCOE
 
 
-    def get_VaR(self, NPV, **kwargs):
+    def get_VaR(self, IRR, **kwargs):
         """
         This method calculates the value-at-risk from the array of 
         simulated net present values of the project.
@@ -228,9 +205,9 @@ class Indicators():
         Value-at-risk: The maximum expected loss with a confidence of 1-PERCENTILE.
 
         """
-        PERCENTILE = kwargs.get("PERCENTILE", 1)
+        VaR = np.percentile(IRR, 0.5)-np.percentile(IRR, 0.1)
         
-        return np.percentile(NPV, PERCENTILE)
+        return VaR
     
     
     def get_sharpe(self, IRR):
@@ -318,7 +295,7 @@ class Indicators():
         NPV : int
 
         """
-        
+                        
         period_to_analyze = PERIOD
         
         #Calculate the matrix for all timesteps and random distributions.
@@ -346,6 +323,48 @@ class Indicators():
         
         return NPV
     
+    def get_NPV_Subsidy_Anchor_Capacity(self, ANCHOR_CAPACITY, npv_target, WACC, PERIOD, E_OUT_MAX):
+        """
+        This methods calculates the net present value of the energy project in US$,
+        considering future developments of interest rates and country-specific
+        developments.
+
+        Returns
+        -------
+        NPV : int
+
+        """
+        
+        period_to_analyze = PERIOD
+        
+        #Calculate, whether the anchor capacity bookings would exceed the revenues from actual capacity bookings.
+        SUBSIDY = self.ATTR["K_E_out"]*E_OUT_MAX*ANCHOR_CAPACITY-self.ATTR["K_E_out"]*self.ATTR["E_out"]
+        SUBSIDY[SUBSIDY<0] = 0
+                
+        #Calculate the matrix for all timesteps and random distributions.
+        OPERATING_CASHFLOW = (
+            self.ATTR["K_E_out"]*self.ATTR["E_out"] +
+            SUBSIDY -
+            self.ATTR["OPEX"] - 
+            self.ATTR["K_E_in"]*self.ATTR["E_in"]
+            ) * (1-self.ATTR["CORPORATE_TAX_RATE"])
+         
+        TERMINAL_VALUE = self.ATTR["TERMINAL_VALUE"].copy()
+
+        K_INVEST = self.ATTR["K_INVEST"].copy()
+                
+        RELEVANT_CASHFLOWS = (
+            OPERATING_CASHFLOW + 
+            TERMINAL_VALUE -
+            K_INVEST
+            )
+        
+        #Discounting of annual cashflows and investments
+        NPV = -npv_target
+        for t in range(period_to_analyze):
+            NPV += RELEVANT_CASHFLOWS[t] / (1+WACC)**t
+        
+        return NPV
     
     def get_NPV_Subsidy_Fixed_Premium(self, FIXED_PREMIUM, npv_target, WACC, PERIOD):
         """
@@ -387,7 +406,7 @@ class Indicators():
 
     
     
-    def get_subsidy(self, npv_target, depreciation_target, subsidy_scheme, WACC):
+    def get_subsidy(self, npv_target, depreciation_target, subsidy_scheme, WACC, **kwargs):
         """
         This method returns the required subsidy to reach the defined
         net present value target after a given depreciation period and
@@ -420,14 +439,31 @@ class Indicators():
             x_init = np.full(self.RANDOM_DRAWS, 1e+6)
             subsidy = so.fsolve(self.get_NPV_Subsidy_Annually_Constant, x_init, args=(npv_target,WACC,depreciation_target))
 
+        elif subsidy_scheme == "ANCHOR_CAPACITY":
+            E_OUT_MAX = kwargs.get("E_OUT_MAX", 0)
+            if E_OUT_MAX == 0:
+                raise ValueError("-E_OUT_MAX- must be given for this subsidy calculation.")
+            x_init = np.full(self.RANDOM_DRAWS, 0.8)
+            anchor_capacity_ratio = so.fsolve(self.get_NPV_Subsidy_Anchor_Capacity, x_init, args=(npv_target,WACC,depreciation_target,E_OUT_MAX))
+            funding = self.ATTR["K_E_out"]*E_OUT_MAX*anchor_capacity_ratio-self.ATTR["K_E_out"]*self.ATTR["E_out"]
+            funding[funding<0] = 0
+            
+            subsidy = (funding, anchor_capacity_ratio)
+
         elif subsidy_scheme == "FIXED_PREMIUM":
-            x_init = np.full(self.RANDOM_DRAWS, 0.1)
+            x_init = np.full(self.RANDOM_DRAWS, 0.001)
             subsidy = so.fsolve(self.get_NPV_Subsidy_Fixed_Premium, x_init, args=(npv_target,WACC,depreciation_target))
+
+        elif subsidy_scheme == "DYNAMIC_PREMIUM":
+            OPERATING_CASHFLOW, OPERATING_CASHFLOW_STD, NON_OPERATING_CASHFLOW, NON_OPERATING_CASHFLOW_STD = self.get_cashflows(WACC)
+            TOTAL_CASHFLOW = OPERATING_CASHFLOW + NON_OPERATING_CASHFLOW
+            subsidy = -(TOTAL_CASHFLOW / self.ATTR["E_in"].mean(axis=1))
 
         elif subsidy_scheme == "CFD":
             OPERATING_CASHFLOW, OPERATING_CASHFLOW_STD, NON_OPERATING_CASHFLOW, NON_OPERATING_CASHFLOW_STD = self.get_cashflows(WACC)
             subsidy = -(OPERATING_CASHFLOW + NON_OPERATING_CASHFLOW)
-            print("WARNING: Given NPV-target might not be achieved, since CfD-funding only balances out cashflows! For NPV = 0 align the depreciation_target with the depreciation-period for the whole projects.")
+            #print("WARNING: Given NPV-target might not be achieved, since CfD-funding only balances out cashflows! For NPV = 0 align the depreciation_target with the depreciation-period for the whole projects.")
+        
         else:
             raise AttributeError("No such subsidy scheme defined.") 
 
