@@ -14,11 +14,12 @@ import profin as pp
 #PROJECT DATA
 #____Investment costs
 K_INVEST=np.zeros(shape=30)
-K_INVEST[0] = 3e+9
-K_INVEST[10] = 3e+9*0.1
+K_INVEST[0] = 3e+9 # K_INVEST[0] is the investment at year 1
+K_INVEST[10] = 3e+9*0.1 # K_INVEST[t] is an additional investment happening at year t+1
 #____Terminal value at the end of life
 TERMINAL_VALUE=K_INVEST[0]*0.1
-#____Depreciation period
+# ____Depreciation period -> I would put a Warning between depreciation period and terminal value and lifetime or
+# there is no connection
 DEPRECIATION_PERIOD=20
 #____Averaged technical lifetime of plant components
 TECHNICAL_LIFETIME=30
@@ -28,13 +29,13 @@ OPEX=K_INVEST[0]*0.02 #2% of CAPEX
 
 #ELECTRICITY
 #____Electricity demand in kWh per year. 2 GW, 4000 full load hours --> 8 TWh
-E_in=2*4000*1e+6
+E_in=2*4000*1e+6 # should it be calculated by the code?
 #____Electricity price USD/kWh
 K_E_in=0.02
 
 
 #HYDROGEN
-#____Hydrogen output. 0.1 Mt/year --> 3.333 TWh H2
+#____Hydrogen output. 0.1 Mt/year --> 3.333 TWh H2 # should it be calculated by the code?
 E_out=0.1*1e+9*33.33
 #____Hydrogen price in USD/kWh. 6 USD/kg --> 0.18 USD/kWh
 K_E_out=0.18

@@ -25,15 +25,15 @@ class Indicators():
 
         Parameters
         ----------
-        MARKET_RETURN : array
+        GLOBAL_MARKET_RETURN : array
             Simulated array of market returns.
         ASSET_RETURN : array
             Simulated array of returns on the asset.
 
         Returns
         -------
-        BETA : float
-            Measure of project risk relative to market risk.
+        float
+            BETA: Measure of project risk relative to market risk.
 
         """
         
@@ -44,12 +44,13 @@ class Indicators():
 
     def get_WACC(self):
         """
-        This methods calculates the weighted average cost of capital,
+        This method calculates the weighted average cost of capital,
         including country-specific risk premiums.
 
         Returns
         -------
-        WACC : np.array
+        np. array
+            WACC: Weighted Average Cost of Capital for the project
 
         """
         print("Unlevered BETA is exogenously defined to:", self.ATTR["BETA_UNLEVERED"])
@@ -85,11 +86,12 @@ class Indicators():
 
     def get_energy_efficiency(self):
         """
-        This methods calculates the energy efficiency of the energy-project.
+        This method calculates the energy efficiency of the energy-project.
 
         Returns
         -------
-        EFFICIENCY : float
+        float
+            EFFICIENCY : float
 
         """
         EFFICIENCY = self.ATTR["E_out"] / self.ATTR["E_in"]
@@ -99,13 +101,14 @@ class Indicators():
 
     def get_NPV(self, WACC, **kwargs):
         """
-        This methods calculates the net present value of the energy project in US$,
+        This method calculates the net present value of the energy project in US$,
         considering future developments of interest rates and country-specific
         developments.
 
         Returns
         -------
-        NPV : int
+        int
+            NPV : int
 
         """
         

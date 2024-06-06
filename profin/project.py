@@ -19,8 +19,11 @@ class Project(Indicators, Risks):
     of project KPIs for a specific energy project at hand.
     
     Notes on input-definition:
+    --------------------------
+
     - The values of the dictionary ATTR can be defined as int, float or numpy arrays.
     If being defined as numpy arrays, they must have the same length as the defined project LIFETIME.
+
     - The values of the scale-parameter in the dictionary RISK_PARAM can be defined as int, float or numpy arrays.
     If being defined as numpy arrays, they must have the same length as the defined project LIFETIME.
     """
@@ -87,24 +90,27 @@ class Project(Indicators, Risks):
             For each parameter, stochastic distribution functions can be
             defined, which determine the fluctuation around the mean values
             within the Monte-Carlo simulation.
-        **kwargs REPAYMENT_PERIOD : int
-            This parameter is the repayment period for bank loans and the 
-            depreciation period for equity capital. 
-            It defaults to the LIFETIME of the project.
-        **kwargs SUBSIDY : float, int, array
-            This parameter defined the annual subsidy for the project.
-            Defaults to 0.
-        **kwargs CRP_EXPOSURE : float
-            This parameter defines how much the project is exposed to 
-            country risk. It varies between 0-1 and defaults to 1.
-        **kwargs BETA_UNLEVERED : float
-            This parameter defines the unlevered BETA factor of the project
-            and defaults to 0.54.
-        **kwargs ENDOGENOUS_PROJECT_RISK : boolean
-            This parameter defines, whether an additional, project-specific
-            risk shall be calculated from RISK_PARAM.
-            REFERENCE: Deloitte (2024): "Financing the Green Energy Transition: 
+
+        **kwargs
+            REPAYMENT_PERIOD : int
+                This parameter is the repayment period for bank loans and the
+                depreciation period for equity capital.
+                It defaults to the LIFETIME of the project.
+            SUBSIDY : float, int, array
+                This parameter defined the annual subsidy for the project.
+                Defaults to 0.
+            CRP_EXPOSURE : float
+                This parameter defines how much the project is exposed to
+                country risk. It varies between 0-1 and defaults to 1.
+            BETA_UNLEVERED : float
+                This parameter defines the unlevered BETA factor of the project
+                and defaults to 0.54.
+            ENDOGENOUS_PROJECT_RISK : boolean
+                This parameter defines, whether an additional, project-specific
+                risk shall be calculated from RISK_PARAM.
+                REFERENCE: Deloitte (2024): "Financing the Green Energy Transition:
                 Innovative financing for a just transition"
+            MISSING: OBSERVE_PAST
 
         Raises
         ------
