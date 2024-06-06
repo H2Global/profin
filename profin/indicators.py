@@ -50,7 +50,7 @@ class Indicators():
         Returns
         -------
         np. array
-            WACC: Weighted Average Cost of Capital for the project
+            WACC: Weighted Average Cost of Capital for the project.
 
         """
         print("Unlevered BETA is exogenously defined to:", self.ATTR["BETA_UNLEVERED"])
@@ -91,7 +91,7 @@ class Indicators():
         Returns
         -------
         float
-            EFFICIENCY : float
+            EFFICIENCY : define as the ratio of the produced energy over the used energy
 
         """
         EFFICIENCY = self.ATTR["E_out"] / self.ATTR["E_in"]
@@ -108,7 +108,7 @@ class Indicators():
         Returns
         -------
         int
-            NPV : int
+            NPV : value of future cash flow over an investment's entire life discounted to the present.   #is this a int or a float??
 
         """
         
@@ -144,11 +144,12 @@ class Indicators():
 
     def get_IRR(self, **kwargs):
         """
-        This methods calculates the IRR (Internal rate of return).
+        This method calculates the IRR (Internal rate of return).
 
         Returns
         -------
-        None.
+        float
+            IRR: the discount rate that makes the net present value (NPV) of all cash flows equal to zero
 
         """
         
@@ -165,14 +166,16 @@ class Indicators():
 
     def get_LCOE(self, WACC):
         """
-        This methods calculates the levelized cost of energy in US$, 
+        This method calculates the levelized cost of energy in US$,
         which is the cost of energy at the output stream of the energy project,
         including cost of input energy streams, CAPEX, OPEX, profit 
         and country-specific taxation.
 
         Returns
         -------
-        LCOE : int
+        int
+            LCOE : minimum price at which the output energy by the project is required to be sold in order to offset the
+            total costs of production over the studied period # is this a int or a float?
         
         """
         
@@ -220,7 +223,7 @@ class Indicators():
     
     def get_cashflows(self, WACC, **kwargs):
         """
-        This methods calculates the mean and standard deviation of cashflows in each year.
+        This method calculates the mean and standard deviation of cashflows in each year.
 
         Returns
         -------
@@ -289,7 +292,7 @@ class Indicators():
         
     def get_NPV_Subsidy_Annually_Constant(self, ANNUAL_SUBSIDY, npv_target, WACC, PERIOD):
         """
-        This methods calculates the net present value of the energy project in US$,
+        This method calculates the net present value of the energy project in US$,
         considering future developments of interest rates and country-specific
         developments.
 
@@ -328,7 +331,7 @@ class Indicators():
     
     def get_NPV_Subsidy_Anchor_Capacity(self, ANCHOR_CAPACITY, npv_target, WACC, PERIOD, E_OUT_MAX):
         """
-        This methods calculates the net present value of the energy project in US$,
+        This method calculates the net present value of the energy project in US$,
         considering future developments of interest rates and country-specific
         developments.
 
@@ -371,7 +374,7 @@ class Indicators():
     
     def get_NPV_Subsidy_Fixed_Premium(self, FIXED_PREMIUM, npv_target, WACC, PERIOD):
         """
-        This methods calculates the net present value of the energy project in US$,
+        This method calculates the net present value of the energy project in US$,
         considering future developments of interest rates and country-specific
         developments.
 
