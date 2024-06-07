@@ -15,7 +15,7 @@ import profin as pp
 #____Investment costs
 K_INVEST=np.zeros(shape=20)
 K_INVEST[0] = 3e+9 # K_INVEST[0] is the investment at year 1
-K_INVEST[10] = 3e+9*0 # K_INVEST[t] is an additional investment happening at year t+1
+#K_INVEST[10] = 3e+9*0 # K_INVEST[t] is an additional investment happening at year t+1
 #____Terminal value at the end of life
 TERMINAL_VALUE=K_INVEST[0]*0
 # ____Depreciation period -> I would put a Warning between depreciation period and terminal value and lifetime or
@@ -31,7 +31,7 @@ OPEX=K_INVEST[0]*0.02 #2% of CAPEX
 #____Electricity demand in kWh per year. 2 GW, 4000 full load hours --> 8 TWh
 E_in=2*4000*1e+6 # should it be calculated by the code?
 #____Electricity price USD/kWh
-K_E_in=0.02
+K_E_in=0.015
 
 
 #HYDROGEN
