@@ -32,7 +32,6 @@ class Indicators():
 
         Returns
         -------
-
         float
             BETA: Measure of project risk relative to market risk.
 
@@ -50,7 +49,7 @@ class Indicators():
 
         Returns
         -------
-        np. array
+        float
             WACC: Weighted Average Cost of Capital for the project.
 
         """
@@ -92,7 +91,7 @@ class Indicators():
         Returns
         -------
         float
-            EFFICIENCY : define as the ratio of the produced energy over the used energy
+            EFFICIENCY : define as the ratio of the produced energy over the used energy.
 
         """
         EFFICIENCY = self.ATTR["E_out"] / self.ATTR["E_in"]
@@ -105,6 +104,14 @@ class Indicators():
         This method calculates the net present value of the energy project in US$,
         considering future developments of interest rates and country-specific
         developments.
+
+        Parameters
+        ----------
+        WACC : float
+            The Weighted Average Cost of Capital.
+        **kwargs : dict
+            Additional keyword arguments that can specify various parameters like
+            cash flows, number of periods, etc.
 
         Returns
         -------
@@ -150,7 +157,7 @@ class Indicators():
         Returns
         -------
         float
-            IRR: the discount rate that makes the net present value (NPV) of all cash flows equal to zero
+            IRR: the discount rate that makes the net present value (NPV) of all cash flows equal to zero.
 
         """
         
@@ -172,11 +179,16 @@ class Indicators():
         including cost of input energy streams, CAPEX, OPEX, profit 
         and country-specific taxation.
 
+        Parameters
+        ----------
+        WACC : float
+            The Weighted Average Cost of Capital.
+
         Returns
         -------
         float
             LCOE : minimum price at which the output energy by the project is required to be sold in order to offset the
-            total costs of production over the studied period
+            total costs of production over the studied period.
         
         """
         
@@ -203,14 +215,17 @@ class Indicators():
         
         Parameters
         ----------
+        IRR : array_like
+            An array of simulated Internal Rates of Return for the project.
+
         keyword-argument PERCENTILE: 
             The percentile indicates the probability with which the
             negative event will occur. Defaults to 1% (Gatti, 2008: Project Finance in Theory and Practice).
             
         Returns
         -------
-        Value-at-risk: The maximum expected loss with a confidence of 1-PERCENTILE.
-
+        float
+            Value-at-risk: The maximum expected loss with a confidence of 1-PERCENTILE.
         """
         VaR = np.percentile(IRR, 0.5)-np.percentile(IRR, 0.1)
         
@@ -226,10 +241,18 @@ class Indicators():
         """
         This method calculates the mean and standard deviation of cashflows in each year.
 
+        Parameters
+        ----------
+        WACC : float
+            The Weighted Average Cost of Capital.
+
         Returns
         -------
-        PP : int
-
+        tuple
+            - OPERATING_CASHFLOW (float): Non-discounted operating cash flow.
+            - OPERATING_CASHFLOW_STD (float): Standard deviation of the non-discounted operating cash flow.
+            - NON_OPERATING_CASHFLOW (float): Non-discounted non-operating cash flow.
+            - NON_OPERATING_CASHFLOW_STD (float): Standard deviation of the non-discounted non-operating cash flow.
         """
         
         #FOR THE FUTURE: Introduce different distributions over time 
@@ -293,14 +316,25 @@ class Indicators():
         
     def get_NPV_Subsidy_Annually_Constant(self, ANNUAL_SUBSIDY, npv_target, WACC, PERIOD):
         """
-        This method calculates the net present value of the energy project in US$,
+        This method calculates the net present value of the energy project in US dollars,
         considering future developments of interest rates and country-specific
         developments.
 
+        Parameters
+        ----------
+        ANNUAL_SUBSIDY : float
+            The annual subsidy amount in US dollars that the project will receive.
+        npv_target : float
+            The target NPV that the project aims to achieve.
+        WACC : float
+            The Weighted Average Cost of Capital.
+        PERIOD : int
+            The total period over which the NPV is calculated, typically expressed in years.
+
         Returns
         -------
-        NPV : int
-
+        float
+            NPV: the calculated NPV of the project, after accounting for the annual subsidy over the specified period.
         """
                         
         period_to_analyze = PERIOD
@@ -332,14 +366,28 @@ class Indicators():
     
     def get_NPV_Subsidy_Anchor_Capacity(self, ANCHOR_CAPACITY, npv_target, WACC, PERIOD, E_OUT_MAX):
         """
-        This method calculates the net present value of the energy project in US$,
+        This method calculates the net present value of the energy project in US dollars,
         considering future developments of interest rates and country-specific
         developments.
 
+        Parameters
+        ----------
+        ANCHOR_CAPACITY : float
+            TO BE DEFINED.
+        npv_target : float
+            The target NPV that the project aims to achieve.
+        WACC : float
+            The Weighted Average Cost of Capital.
+        PERIOD : int
+            The total period over which the NPV is calculated.
+        E_OUT_MAX : float
+            The maximum energy output capacity of the project.
+
+
         Returns
         -------
-        NPV : int
-
+        float
+            NPV:The calculated NPV of the project, after considering the anchor capacity and the specified economic factors over the given period.
         """
         
         period_to_analyze = PERIOD
@@ -379,10 +427,22 @@ class Indicators():
         considering future developments of interest rates and country-specific
         developments.
 
+        Parameters
+        ----------
+        FIXED_PREMIUM : float
+            The fixed premium amount in US dollars that will be added annually to the cash flows.
+        npv_target : float
+            The target NPV that the project aims to achieve. This acts as a benchmark for financial planning.
+        WACC : float
+            The Weighted Average Cost of Capital, used as the discount rate for computing the present value of future cash flows.
+        PERIOD : int
+            The duration over which the NPV is calculated.
+
+
         Returns
         -------
-        NPV : int
-
+        float
+            NPV: The calculated NPV of the project, adjusted for the fixed premium over the specified period.
         """
         
         period_to_analyze = PERIOD
@@ -423,18 +483,23 @@ class Indicators():
 
         Parameters
         ----------
-        npv_target : TYPE
-            DESCRIPTION.
-        depreciation_target : TYPE
-            DESCRIPTION.
-        subsidy_scheme : TYPE
-            DESCRIPTION.
-        WACC : TYPE
-            DESCRIPTION.
+        npv_target : float
+            The NPV target that the project aims to achieve.
+        depreciation_target : int
+            The number of years over which the asset will be depreciated.
+        subsidy_scheme : str
+            The type of subsidy scheme to be applied. Valid options include:
+            - 'initial' for initial subsidy (e.g., CAPEX),
+            - 'annual' for annually constant subsidy (e.g., H2Global),
+            - 'CFD' for Contracts for Difference,
+            - 'fixed' for Fixed Premium.
+        WACC : float
+            The Weighted Average Cost of Capital.
 
         Returns
         -------
-        None.
+        float
+            The calculated subsidy amount required to meet the NPV target after depreciation and considering the selected subsidy scheme.
 
         """
         

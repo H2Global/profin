@@ -115,18 +115,25 @@ class Project(Indicators, Risks):
         Raises
         ------
         Warning
-            DESCRIPTION. -> "Repayment period is longer than the analyzed project period. - Consider an open PRINCIPAL in the definition of the TERMINAL_VALUE"
-            DESCRIPTION. -> "No risks have been defined."
+            "Repayment period is longer than the analyzed project period. - Consider an open PRINCIPAL in the definition of the TERMINAL_VALUE"
+        Warning
+            "No risks have been defined."
         ValueError
-            DESCRIPTION. -> "Not enough data to observe the chosen point in history. Decrease parameter -OBSERVE_PAST-"
-            DESCRIPTION. -> "The defined dict RISK_PARAM includes unknown parameters (check spelling)"
-            DESCRIPTION. -> "Attribute LIFETIME cannot be randomized."
-            DESCRIPTION. -> "Attribute LIFETIME must be constant."
-            DESCRIPTION. -> "Length of given attribute values must be equal to LIFETIME for attribute:", attr
-            DESCRIPTION. -> "Unknown input format provided for attribute:", attr, ". Allowed formats are -int-, -float-, and numpy arrays."
+            "Not enough data to observe the chosen point in history. Decrease parameter -OBSERVE_PAST-"
+        ValueError
+            "The defined dict RISK_PARAM includes unknown parameters (check spelling)"
+        ValueError
+            "Attribute LIFETIME cannot be randomized."
+        ValueError
+            "Attribute LIFETIME must be constant."
+        ValueError
+            "Length of given attribute values must be equal to LIFETIME for attribute:", attr
+         ValueError
+            "Unknown input format provided for attribute:", attr, ". Allowed formats are -int-, -float-, and numpy arrays."
         AttributeError
-            DESCRIPTION. -> "The risk", check_risk, "must be defined with a correlation to the MSCI (World)."
-            DESCRIPTION. -> "Given correlations of risk", risk_x, "and risk", risk_y, "are not equal. Please check the input."
+            "The risk", check_risk, "must be defined with a correlation to the MSCI (World)."
+        AttributeError
+            "Given correlations of risk", risk_x, "and risk", risk_y, "are not equal. Please check the input."
 
         Returns
         -------
