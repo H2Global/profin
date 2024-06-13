@@ -45,8 +45,8 @@ for s in list(scenarios):
     #Output: 1689*1e6 kWh ammonia per year --> 323.6 million tons ammonia
     #Lower heating value ammonia: 5.22 kWh / kg 
 
-    LIFETIME_TEMP = 30
-    TECHNICAL_LIFETIME = 30
+    LIFETIME_TEMP = 21
+    TECHNICAL_LIFETIME = 21
     K_E_in_temp = 0 #USD/kWh
     #Calculating investment costs from Cesaro et al. (2021) --> Reference year: 2025
     
@@ -189,10 +189,10 @@ for s in list(scenarios):
                      COUNTRY_RISK_PREMIUM=scenarios[s]["CRP"], #Damodaran CRP for Kenya: 9.86%
                      INTEREST=scenarios[s]["Interest_Rate"],
                      CORPORATE_TAX_RATE=scenarios[s]["Corporate_Tax"], #Damodaran for Kenya: 30%
-                     RISK_PARAM=RISK_PARAM_EXAMPLE,
+                     RISK_PARAM={},
                      OBSERVE_PAST=0,
                      ENDOGENOUS_BETA=False,
-                     REPAYMENT_PERIOD=30
+                     REPAYMENT_PERIOD=21
                      )
     
     # Calculate Internal Rate of Return (IRR)

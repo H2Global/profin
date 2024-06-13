@@ -139,7 +139,7 @@ for s in list(scenarios):
                      K_E_out=K_E_out_ARRAY,
                      K_INVEST=2082000000, #From ISE Study
                      TERMINAL_VALUE=2082000000*(1-LIFETIME_TEMP/TECHNICAL_LIFETIME),
-                     LIFETIME=LIFETIME_TEMP,
+                     TECHNICAL_LIFETIME=LIFETIME_TEMP,
                      OPEX=2082000000*0.03, #3% of CAPEX (=INVEST/LIFETIME).
                      EQUITY_SHARE=scenarios[s]["Equity_Share"],
                      COUNTRY_RISK_PREMIUM=scenarios[s]["CRP"], #Damodaran CRP for Kenya: 9.86%
@@ -193,7 +193,7 @@ for s in list(scenarios):
 for s in list(scenarios):
     print(s)
     
-    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["LIFETIME"]
+    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["TECHNICAL_LIFETIME"]
     years = np.arange(1, LIFETIME_TEMP+1)
     
     #CASHFLOW
@@ -225,7 +225,7 @@ for s in list(scenarios):
 for s in list(scenarios):
     print(s)
     
-    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["LIFETIME"]
+    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["TECHNICAL_LIFETIME"]
     WACC_TEMP = STORE_RESULTS[s]["WACC"]
     
     years = np.arange(LIFETIME_TEMP+1)

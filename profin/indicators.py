@@ -32,6 +32,7 @@ class Indicators():
 
         Returns
         -------
+
         float
             BETA: Measure of project risk relative to market risk.
 
@@ -107,12 +108,12 @@ class Indicators():
 
         Returns
         -------
-        int
-            NPV : value of future cash flow over an investment's entire life discounted to the present.   #is this a int or a float??
+        float
+            NPV : value of future cash flow over an investment's entire life discounted to the present.
 
         """
         
-        period_to_analyze = kwargs.get("PERIOD", self.ATTR["LIFETIME"])
+        period_to_analyze = kwargs.get("PERIOD", self.ATTR["TECHNICAL_LIFETIME"])
         
         #Calculate the matrix for all timesteps and random distributions.
         OPERATING_CASHFLOW = (
@@ -173,9 +174,9 @@ class Indicators():
 
         Returns
         -------
-        int
+        float
             LCOE : minimum price at which the output energy by the project is required to be sold in order to offset the
-            total costs of production over the studied period # is this a int or a float?
+            total costs of production over the studied period
         
         """
         
@@ -184,7 +185,7 @@ class Indicators():
         #Initialize TOTAL_ENERGY with 0.
         TOTAL_ENERGY = 0
                 
-        for t in range(self.ATTR["LIFETIME"]):
+        for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
             # Add discounted energy purchase and operating costs
             TOTAL_COSTS += (self.ATTR["K_INVEST"][t] + self.ATTR["K_E_in"][t]*self.ATTR["E_in"][t] + self.ATTR["OPEX"][t]) / (1+WACC)**t
             # Add discounted energy production        
@@ -255,18 +256,18 @@ class Indicators():
         #____Discount annual operating cashflows
         OPERATING_CASHFLOW_DISCOUNTED = OPERATING_CASHFLOW.copy()
         OPERATING_CASHFLOW_STD_DISCOUNTED = OPERATING_CASHFLOW_STD.copy()
-        for t in range(self.ATTR["LIFETIME"]):
+        for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
             OPERATING_CASHFLOW_DISCOUNTED[t] = OPERATING_CASHFLOW[t] / (1+WACC.mean())**t
             OPERATING_CASHFLOW_STD_DISCOUNTED[t] = OPERATING_CASHFLOW_STD_DISCOUNTED[t] / (1+WACC.mean())**t
         
         # NON-OPERATING CASHFLOW
         #____Annual non-operating cashflow (interest, principal, dividends)
-        NON_OPERATING_CASHFLOW = np.zeros(self.ATTR["LIFETIME"])
+        NON_OPERATING_CASHFLOW = np.zeros(self.ATTR["TECHNICAL_LIFETIME"])
         #____interest on debt, principal payments and dividends
         K_INVEST_CUMSUM = self.ATTR["K_INVEST"].cumsum(axis=0)
         ANNUAL_INTEREST = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"]*self.ATTR["COST_OF_DEBT"]).T #assuming constant and linear interest payments
-        ANNUAL_PRINCIPAL = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"] / self.ATTR["REPAYMENT_PERIOD"]).T #assuming constant and linear principal payments
-        if self.ATTR["REPAYMENT_PERIOD"] < self.ATTR["LIFETIME"]:
+        ANNUAL_PRINCIPAL = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"] / self.ATTR["DEPRECIATION_PERIOD"]).T #assuming constant and linear principal payments
+        if self.ATTR["DEPRECIATION_PERIOD"] < self.ATTR["TECHNICAL_LIFETIME"]:
             YEARS_WITHOUT_PRINCIPAL = self.ATTR["LIFETIME"] - self.ATTR["REPAYMENT_PERIOD"]
             ANNUAL_PRINCIPAL[-YEARS_WITHOUT_PRINCIPAL:] = 0
             ANNUAL_INTEREST[-YEARS_WITHOUT_PRINCIPAL:] = 0
@@ -280,7 +281,7 @@ class Indicators():
         # Discount capital payments
         NON_OPERATING_CASHFLOW_DISCOUNTED = NON_OPERATING_CASHFLOW.copy()
         NON_OPERATING_CASHFLOW_STD_DISCOUNTED = NON_OPERATING_CASHFLOW_STD.copy()
-        for t in range(self.ATTR["LIFETIME"]):
+        for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
             NON_OPERATING_CASHFLOW_DISCOUNTED[t] = NON_OPERATING_CASHFLOW[t] / (1+WACC.mean())**t
             NON_OPERATING_CASHFLOW_STD_DISCOUNTED[t] = NON_OPERATING_CASHFLOW_STD[t] / (1+WACC.mean())**t        
         
