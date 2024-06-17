@@ -18,30 +18,6 @@ class Indicators():
     def __init__(self):
         pass
 
-    def get_BETA(self, GLOBAL_MARKET_RETURN, ASSET_RETURN):
-        """
-        This method calculates beta from the simulated distribution of 
-        market and asset returns.
-
-        Parameters
-        ----------
-        GLOBAL_MARKET_RETURN : array
-            Simulated array of market returns.
-        ASSET_RETURN : array
-            Simulated array of returns on the asset.
-
-        Returns
-        -------
-        float
-            BETA: Measure of project risk relative to market risk.
-
-        """
-        
-        #get the index[0][1], as np.cov return cov-matrix.
-        BETA = np.cov(GLOBAL_MARKET_RETURN, ASSET_RETURN)[0][1] / np.var(GLOBAL_MARKET_RETURN)
-        
-        return BETA
-
     def get_WACC(self):
         """
         This method calculates the weighted average cost of capital,
