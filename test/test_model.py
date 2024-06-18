@@ -2,7 +2,7 @@
 """
 Created on Sat Jun 13 2024
 
-@author: mattemassera
+@author: matteomassera
 """
 import os
 import sys
@@ -11,8 +11,6 @@ import numpy as np
 
 
 import profin as pp
-
-
 
 class TestProfin(unittest.TestCase):
 
@@ -39,28 +37,27 @@ class TestProfin(unittest.TestCase):
                      ERP_MATURE=0.06
                      )
 
+        self.result_WACC = self.p_example.get_WACC()
+        self.WACC = self.result_WACC
+
 
     def test_WACC(self):
-        result_WACC  = self.p_example.get_WACC()
-        self.assertAlmostEqual(result_WACC,0.09091199999999999, places=20)
+        self.assertAlmostEqual(self.WACC,0.09091199999999999, places=20)
 
     def test_IRR(self):
         result_IRR = self.p_example.get_IRR()
         self.assertAlmostEqual(result_IRR.mean(), 0.10679517359047987, places=20)
 
     def test_NPV(self):
-        result_WACC = self.p_example.get_WACC()
-        result_NPV = self.p_example.get_NPV(result_WACC)
+        result_NPV = self.p_example.get_NPV(self.WACC)
         self.assertAlmostEqual(result_NPV.mean(), 379226192.8872226, places=20)
 
     def test_LCOE(self):
-        result_WACC = self.p_example.get_WACC()
-        result_LCOE = self.p_example.get_LCOE(result_WACC)
+        result_LCOE = self.p_example.get_LCOE(self.WACC)
         self.assertAlmostEqual(result_LCOE.mean(), 0.1469671942396542, places=20)
 
     def test_cash_flow(self):
-        result_WACC = self.p_example.get_WACC()
-        operating_cashflow, operating_cashflow_std, non_operating_cashflow, non_operating_cashflow_std = self.p_example.get_cashflows(result_WACC)
+        operating_cashflow, operating_cashflow_std, non_operating_cashflow, non_operating_cashflow_std = self.p_example.get_cashflows(self.WACC)
 
         expected_operating_cashflow =  np.full(30, 303952000.0)
         expected_operating_cashflow_std  = np.full(30, 0)
