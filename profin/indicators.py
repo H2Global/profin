@@ -18,38 +18,15 @@ class Indicators():
     def __init__(self):
         pass
 
-    def get_BETA(self, GLOBAL_MARKET_RETURN, ASSET_RETURN):
-        """
-        This method calculates beta from the simulated distribution of 
-        market and asset returns.
-
-        Parameters
-        ----------
-        MARKET_RETURN : array
-            Simulated array of market returns.
-        ASSET_RETURN : array
-            Simulated array of returns on the asset.
-
-        Returns
-        -------
-        BETA : float
-            Measure of project risk relative to market risk.
-
-        """
-        
-        #get the index[0][1], as np.cov return cov-matrix.
-        BETA = np.cov(GLOBAL_MARKET_RETURN, ASSET_RETURN)[0][1] / np.var(GLOBAL_MARKET_RETURN)
-        
-        return BETA
-
     def get_WACC(self):
         """
-        This methods calculates the weighted average cost of capital,
+        This method calculates the weighted average cost of capital,
         including country-specific risk premiums.
 
         Returns
         -------
-        WACC : np.array
+        float
+            WACC: Weighted Average Cost of Capital for the project.
 
         """
         print("Unlevered BETA is exogenously defined to:", self.ATTR["BETA_UNLEVERED"])
@@ -85,11 +62,12 @@ class Indicators():
 
     def get_energy_efficiency(self):
         """
-        This methods calculates the energy efficiency of the energy-project.
+        This method calculates the energy efficiency of the energy-project.
 
         Returns
         -------
-        EFFICIENCY : float
+        float
+            EFFICIENCY : define as the ratio of the produced energy over the used energy.
 
         """
         EFFICIENCY = self.ATTR["E_out"] / self.ATTR["E_in"]
@@ -99,17 +77,26 @@ class Indicators():
 
     def get_NPV(self, WACC, **kwargs):
         """
-        This methods calculates the net present value of the energy project in US$,
+        This method calculates the net present value of the energy project in US$,
         considering future developments of interest rates and country-specific
         developments.
 
+        Parameters
+        ----------
+        WACC : float
+            The Weighted Average Cost of Capital.
+        **kwargs : dict
+            Additional keyword arguments that can specify various parameters like
+            cash flows, number of periods, etc.
+
         Returns
         -------
-        NPV : int
+        float
+            NPV : value of future cash flow over an investment's entire life discounted to the present.
 
         """
         
-        period_to_analyze = kwargs.get("PERIOD", self.ATTR["LIFETIME"])
+        period_to_analyze = kwargs.get("PERIOD", self.ATTR["TECHNICAL_LIFETIME"])
         
         #Calculate the matrix for all timesteps and random distributions.
         OPERATING_CASHFLOW = (
@@ -141,11 +128,12 @@ class Indicators():
 
     def get_IRR(self, **kwargs):
         """
-        This methods calculates the IRR (Internal rate of return).
+        This method calculates the IRR (Internal rate of return).
 
         Returns
         -------
-        None.
+        float
+            IRR: the discount rate that makes the net present value (NPV) of all cash flows equal to zero.
 
         """
         
@@ -162,14 +150,21 @@ class Indicators():
 
     def get_LCOE(self, WACC):
         """
-        This methods calculates the levelized cost of energy in US$, 
+        This method calculates the levelized cost of energy in US$,
         which is the cost of energy at the output stream of the energy project,
         including cost of input energy streams, CAPEX, OPEX, profit 
         and country-specific taxation.
 
+        Parameters
+        ----------
+        WACC : float
+            The Weighted Average Cost of Capital.
+
         Returns
         -------
-        LCOE : int
+        float
+            LCOE : minimum price at which the output energy by the project is required to be sold in order to offset the
+            total costs of production over the studied period.
         
         """
         
@@ -178,7 +173,7 @@ class Indicators():
         #Initialize TOTAL_ENERGY with 0.
         TOTAL_ENERGY = 0
                 
-        for t in range(self.ATTR["LIFETIME"]):
+        for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
             # Add discounted energy purchase and operating costs
             TOTAL_COSTS += (self.ATTR["K_INVEST"][t] + self.ATTR["K_E_in"][t]*self.ATTR["E_in"][t] + self.ATTR["OPEX"][t]) / (1+WACC)**t
             # Add discounted energy production        
@@ -196,14 +191,17 @@ class Indicators():
         
         Parameters
         ----------
+        IRR : array_like
+            An array of simulated Internal Rates of Return for the project.
+
         keyword-argument PERCENTILE: 
             The percentile indicates the probability with which the
             negative event will occur. Defaults to 1% (Gatti, 2008: Project Finance in Theory and Practice).
             
         Returns
         -------
-        Value-at-risk: The maximum expected loss with a confidence of 1-PERCENTILE.
-
+        float
+            Value-at-risk: The maximum expected loss with a confidence of 1-PERCENTILE.
         """
         VaR = np.percentile(IRR, 0.5)-np.percentile(IRR, 0.1)
         
@@ -217,12 +215,20 @@ class Indicators():
     
     def get_cashflows(self, WACC, **kwargs):
         """
-        This methods calculates the mean and standard deviation of cashflows in each year.
+        This method calculates the mean and standard deviation of cashflows in each year.
+
+        Parameters
+        ----------
+        WACC : float
+            The Weighted Average Cost of Capital.
 
         Returns
         -------
-        PP : int
-
+        tuple
+            - OPERATING_CASHFLOW (float): Non-discounted operating cash flow.
+            - OPERATING_CASHFLOW_STD (float): Standard deviation of the non-discounted operating cash flow.
+            - NON_OPERATING_CASHFLOW (float): Non-discounted non-operating cash flow.
+            - NON_OPERATING_CASHFLOW_STD (float): Standard deviation of the non-discounted non-operating cash flow.
         """
         
         #FOR THE FUTURE: Introduce different distributions over time 
@@ -249,18 +255,18 @@ class Indicators():
         #____Discount annual operating cashflows
         OPERATING_CASHFLOW_DISCOUNTED = OPERATING_CASHFLOW.copy()
         OPERATING_CASHFLOW_STD_DISCOUNTED = OPERATING_CASHFLOW_STD.copy()
-        for t in range(self.ATTR["LIFETIME"]):
+        for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
             OPERATING_CASHFLOW_DISCOUNTED[t] = OPERATING_CASHFLOW[t] / (1+WACC.mean())**t
             OPERATING_CASHFLOW_STD_DISCOUNTED[t] = OPERATING_CASHFLOW_STD_DISCOUNTED[t] / (1+WACC.mean())**t
         
         # NON-OPERATING CASHFLOW
         #____Annual non-operating cashflow (interest, principal, dividends)
-        NON_OPERATING_CASHFLOW = np.zeros(self.ATTR["LIFETIME"])
+        NON_OPERATING_CASHFLOW = np.zeros(self.ATTR["TECHNICAL_LIFETIME"])
         #____interest on debt, principal payments and dividends
         K_INVEST_CUMSUM = self.ATTR["K_INVEST"].cumsum(axis=0)
         ANNUAL_INTEREST = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"]*self.ATTR["COST_OF_DEBT"]).T #assuming constant and linear interest payments
-        ANNUAL_PRINCIPAL = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"] / self.ATTR["REPAYMENT_PERIOD"]).T #assuming constant and linear principal payments
-        if self.ATTR["REPAYMENT_PERIOD"] < self.ATTR["LIFETIME"]:
+        ANNUAL_PRINCIPAL = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"] / self.ATTR["DEPRECIATION_PERIOD"]).T #assuming constant and linear principal payments
+        if self.ATTR["DEPRECIATION_PERIOD"] < self.ATTR["TECHNICAL_LIFETIME"]:
             YEARS_WITHOUT_PRINCIPAL = self.ATTR["LIFETIME"] - self.ATTR["REPAYMENT_PERIOD"]
             ANNUAL_PRINCIPAL[-YEARS_WITHOUT_PRINCIPAL:] = 0
             ANNUAL_INTEREST[-YEARS_WITHOUT_PRINCIPAL:] = 0
@@ -274,7 +280,7 @@ class Indicators():
         # Discount capital payments
         NON_OPERATING_CASHFLOW_DISCOUNTED = NON_OPERATING_CASHFLOW.copy()
         NON_OPERATING_CASHFLOW_STD_DISCOUNTED = NON_OPERATING_CASHFLOW_STD.copy()
-        for t in range(self.ATTR["LIFETIME"]):
+        for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
             NON_OPERATING_CASHFLOW_DISCOUNTED[t] = NON_OPERATING_CASHFLOW[t] / (1+WACC.mean())**t
             NON_OPERATING_CASHFLOW_STD_DISCOUNTED[t] = NON_OPERATING_CASHFLOW_STD[t] / (1+WACC.mean())**t        
         
@@ -286,14 +292,25 @@ class Indicators():
         
     def get_NPV_Subsidy_Annually_Constant(self, ANNUAL_SUBSIDY, npv_target, WACC, PERIOD):
         """
-        This methods calculates the net present value of the energy project in US$,
+        This method calculates the net present value of the energy project in US dollars,
         considering future developments of interest rates and country-specific
         developments.
 
+        Parameters
+        ----------
+        ANNUAL_SUBSIDY : float
+            The annual subsidy amount in US dollars that the project will receive.
+        npv_target : float
+            The target NPV that the project aims to achieve.
+        WACC : float
+            The Weighted Average Cost of Capital.
+        PERIOD : int
+            The total period over which the NPV is calculated, typically expressed in years.
+
         Returns
         -------
-        NPV : int
-
+        float
+            NPV: the calculated NPV of the project, after accounting for the annual subsidy over the specified period.
         """
                         
         period_to_analyze = PERIOD
@@ -325,14 +342,28 @@ class Indicators():
     
     def get_NPV_Subsidy_Anchor_Capacity(self, ANCHOR_CAPACITY, npv_target, WACC, PERIOD, E_OUT_MAX):
         """
-        This methods calculates the net present value of the energy project in US$,
+        This method calculates the net present value of the energy project in US dollars,
         considering future developments of interest rates and country-specific
         developments.
 
+        Parameters
+        ----------
+        ANCHOR_CAPACITY : float
+            TO BE DEFINED.
+        npv_target : float
+            The target NPV that the project aims to achieve.
+        WACC : float
+            The Weighted Average Cost of Capital.
+        PERIOD : int
+            The total period over which the NPV is calculated.
+        E_OUT_MAX : float
+            The maximum energy output capacity of the project.
+
+
         Returns
         -------
-        NPV : int
-
+        float
+            NPV:The calculated NPV of the project, after considering the anchor capacity and the specified economic factors over the given period.
         """
         
         period_to_analyze = PERIOD
@@ -368,14 +399,26 @@ class Indicators():
     
     def get_NPV_Subsidy_Fixed_Premium(self, FIXED_PREMIUM, npv_target, WACC, PERIOD):
         """
-        This methods calculates the net present value of the energy project in US$,
+        This method calculates the net present value of the energy project in US$,
         considering future developments of interest rates and country-specific
         developments.
 
+        Parameters
+        ----------
+        FIXED_PREMIUM : float
+            The fixed premium amount in US dollars that will be added annually to the cash flows.
+        npv_target : float
+            The target NPV that the project aims to achieve. This acts as a benchmark for financial planning.
+        WACC : float
+            The Weighted Average Cost of Capital, used as the discount rate for computing the present value of future cash flows.
+        PERIOD : int
+            The duration over which the NPV is calculated.
+
+
         Returns
         -------
-        NPV : int
-
+        float
+            NPV: The calculated NPV of the project, adjusted for the fixed premium over the specified period.
         """
         
         period_to_analyze = PERIOD
@@ -416,18 +459,23 @@ class Indicators():
 
         Parameters
         ----------
-        npv_target : TYPE
-            DESCRIPTION.
-        depreciation_target : TYPE
-            DESCRIPTION.
-        subsidy_scheme : TYPE
-            DESCRIPTION.
-        WACC : TYPE
-            DESCRIPTION.
+        npv_target : float
+            The NPV target that the project aims to achieve.
+        depreciation_target : int
+            The number of years over which the asset will be depreciated.
+        subsidy_scheme : str
+            The type of subsidy scheme to be applied. Valid options include:
+            - 'initial' for initial subsidy (e.g., CAPEX),
+            - 'annual' for annually constant subsidy (e.g., H2Global),
+            - 'CFD' for Contracts for Difference,
+            - 'fixed' for Fixed Premium.
+        WACC : float
+            The Weighted Average Cost of Capital.
 
         Returns
         -------
-        None.
+        float
+            The calculated subsidy amount required to meet the NPV target after depreciation and considering the selected subsidy scheme.
 
         """
         

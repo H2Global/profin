@@ -7,7 +7,7 @@ Created on Mon Feb 26 11:44:03 2024
 
 import numpy as np
 import matplotlib.pyplot as plt
-import pyproject as pp
+import profin as pp
 
 #%%
 #Scenario definition
@@ -105,7 +105,7 @@ for s in list(scenarios):
                      K_E_out=K_E_out,
                      K_INVEST=K_INVEST, #From ISE Study
                      TERMINAL_VALUE=K_INVEST*(1-LIFETIME_TEMP/TECHNICAL_LIFETIME),
-                     LIFETIME=LIFETIME_TEMP,
+                     TECHNICAL_LIFETIME=LIFETIME_TEMP,
                      OPEX=K_INVEST*0.03, #3% of CAPEX (=INVEST/LIFETIME).
                      EQUITY_SHARE=scenarios[s]["Equity_Share"],
                      COUNTRY_RISK_PREMIUM=scenarios[s]["CRP"], #Damodaran CRP for Kenya: 9.86%
@@ -153,7 +153,7 @@ for s in list(scenarios):
 for s in list(scenarios):
     print(s)
     
-    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["LIFETIME"]
+    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["TECHNICAL_LIFETIME"]
     years = np.arange(1, LIFETIME_TEMP+1)
     
     #CASHFLOW
@@ -185,7 +185,7 @@ for s in list(scenarios):
 for s in list(scenarios):
     print(s)
     
-    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["LIFETIME"]
+    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["TECHNICAL_LIFETIME"]
     WACC_TEMP = STORE_RESULTS[s]["WACC"]
     
     years = np.arange(LIFETIME_TEMP+1)

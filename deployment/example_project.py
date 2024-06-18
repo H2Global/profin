@@ -14,11 +14,11 @@ import profin as pp
 #PROJECT DATA
 #____Investment costs
 K_INVEST=np.zeros(shape=30)
-K_INVEST[0] = 3e+9
-K_INVEST[10] = 3e+9*0.1
+K_INVEST[0] = 3e+9 # K_INVEST[0] is the investment at year 1
+K_INVEST[10] = 0 # K_INVEST[t] is an additional investment happening at year t+1
 #____Terminal value at the end of life
-TERMINAL_VALUE=K_INVEST[0]*0.1
-#____Depreciation period
+TERMINAL_VALUE=K_INVEST[0]*0
+# ____Depreciation period
 DEPRECIATION_PERIOD=20
 #____Averaged technical lifetime of plant components
 TECHNICAL_LIFETIME=30
@@ -28,13 +28,13 @@ OPEX=K_INVEST[0]*0.02 #2% of CAPEX
 
 #ELECTRICITY
 #____Electricity demand in kWh per year. 2 GW, 4000 full load hours --> 8 TWh
-E_in=2*4000*1e+6
+E_in=2*4000*1e+6 # should it be calculated by the code?
 #____Electricity price USD/kWh
 K_E_in=0.02
 
 
 #HYDROGEN
-#____Hydrogen output. 0.1 Mt/year --> 3.333 TWh H2
+#____Hydrogen output. 0.1 Mt/year --> 3.333 TWh H2 # should it be calculated by the code?
 E_out=0.1*1e+9*33.33
 #____Hydrogen price in USD/kWh. 6 USD/kg --> 0.18 USD/kWh
 K_E_out=0.18
@@ -72,13 +72,13 @@ p_example = pp.Project(
                  K_E_out=K_E_out,
                  K_INVEST=K_INVEST, #Cesaro et al.
                  TERMINAL_VALUE=TERMINAL_VALUE,
-                 LIFETIME=TECHNICAL_LIFETIME,
+                 TECHNICAL_LIFETIME=TECHNICAL_LIFETIME,
                  OPEX=OPEX, #1.5% of CAPEX
                  EQUITY_SHARE=EQUITY_SHARE,
                  COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM, #Damodaran CRP for Kenya: 9.86%
                  INTEREST=INTEREST,
                  CORPORATE_TAX_RATE=CORPORATE_TAX_RATE, #Damodaran for Kenya: 30%
-                 RISK_PARAM=RISK_PARAM,
+                 RISK_PARAM={},
                  OBSERVE_PAST=0,
                  ENDOGENOUS_BETA=False,
                  REPAYMENT_PERIOD=DEPRECIATION_PERIOD
@@ -127,7 +127,7 @@ STORE_RESULTS = {
     }
     
 #%% Visualize annual non-discounted cashflows   
-LIFETIME_TEMP = STORE_RESULTS["ATTR"]["LIFETIME"]
+LIFETIME_TEMP = STORE_RESULTS["ATTR"]["TECHNICAL_LIFETIME"]
 start_year = 2030
 years = np.arange(start_year, LIFETIME_TEMP+start_year)
 
@@ -171,7 +171,7 @@ print("____Offtake_Value:", round(STORE_RESULTS["Offtake_Value"]*1e-9,2), " USD 
     
 #%% Visualize development of NPV over project lifetime
     
-LIFETIME_TEMP = STORE_RESULTS["ATTR"]["LIFETIME"]
+LIFETIME_TEMP = STORE_RESULTS["ATTR"]["TECHNICAL_LIFETIME"]
 WACC_TEMP = STORE_RESULTS["WACC"]
 
 years = np.arange(LIFETIME_TEMP+1)
@@ -222,7 +222,7 @@ for year_temp in range(1, LIFETIME_TEMP+1):
 
 #____derive third and fourth plot (terminal values)
 #Accounting for open principal payments.
-REPAYMENT_PERIOD = STORE_RESULTS["ATTR"]["REPAYMENT_PERIOD"]
+REPAYMENT_PERIOD = STORE_RESULTS["ATTR"]["DEPRECIATION_PERIOD"]
 INVEST_TEMP = STORE_RESULTS["ATTR"]["K_INVEST"].mean()
 if REPAYMENT_PERIOD > LIFETIME_TEMP:
     RATIO_OPEN_PRINCIPAL = 1-(LIFETIME_TEMP / REPAYMENT_PERIOD)

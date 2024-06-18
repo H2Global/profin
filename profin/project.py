@@ -19,8 +19,11 @@ class Project(Indicators, Risks):
     of project KPIs for a specific energy project at hand.
     
     Notes on input-definition:
-    - The values of the dictionary ATTR can be defined as int, float or numpy arrays.
+    --------------------------
+
+    - The values of the dictionary ATTR can be defined as int, float or numpy arrays.\n
     If being defined as numpy arrays, they must have the same length as the defined project LIFETIME.
+
     - The values of the scale-parameter in the dictionary RISK_PARAM can be defined as int, float or numpy arrays.
     If being defined as numpy arrays, they must have the same length as the defined project LIFETIME.
     """
@@ -32,7 +35,7 @@ class Project(Indicators, Risks):
                  K_E_out,
                  K_INVEST,
                  TERMINAL_VALUE,
-                 LIFETIME,
+                 TECHNICAL_LIFETIME,
                  OPEX,
                  EQUITY_SHARE,
                  COUNTRY_RISK_PREMIUM,
@@ -51,14 +54,14 @@ class Project(Indicators, Risks):
         E_out : int, float, array
             This is the annual energy output of the project.
         K_E_in : int, float, array
-            The is the cost of the energy input per kWh.
+            This is the cost of the energy input per kWh.
         K_E_out : int, float, array
             This is the cost of the energy output per kWh - Determines the revenue with E_out.
         K_INVEST : int, float, array
             This is the annual investment into the project.
         TERMINAL_VALUE : int, float, array
             This is the final sales value.
-        LIFETIME : int
+        TECHNICAL_LIFETIME : int
             This is the analyzed lifetime of the project. All cashflows are calculated for this lifetime.
         OPEX : int, float, array
             Annual operational expenditure.
@@ -87,33 +90,50 @@ class Project(Indicators, Risks):
             For each parameter, stochastic distribution functions can be
             defined, which determine the fluctuation around the mean values
             within the Monte-Carlo simulation.
-        **kwargs REPAYMENT_PERIOD : int
-            This parameter is the repayment period for bank loans and the 
-            depreciation period for equity capital. 
-            It defaults to the LIFETIME of the project.
-        **kwargs SUBSIDY : float, int, array
-            This parameter defined the annual subsidy for the project.
-            Defaults to 0.
-        **kwargs CRP_EXPOSURE : float
-            This parameter defines how much the project is exposed to 
-            country risk. It varies between 0-1 and defaults to 1.
-        **kwargs BETA_UNLEVERED : float
-            This parameter defines the unlevered BETA factor of the project
-            and defaults to 0.54.
-        **kwargs ENDOGENOUS_PROJECT_RISK : boolean
-            This parameter defines, whether an additional, project-specific
-            risk shall be calculated from RISK_PARAM.
-            REFERENCE: Deloitte (2024): "Financing the Green Energy Transition: 
+
+        **kwargs
+            DEPRECIATION_PERIOD : int
+                This parameter is the repayment period for bank loans and the
+                depreciation period for equity capital.
+                It defaults to the LIFETIME of the project.
+            SUBSIDY : float, int, array
+                This parameter defined the annual subsidy for the project.
+                Defaults to 0.
+            CRP_EXPOSURE : float
+                This parameter defines how much the project is exposed to
+                country risk. It varies between 0-1 and defaults to 1.
+            BETA_UNLEVERED : float
+                This parameter defines the unlevered BETA factor of the project
+                and defaults to 0.54.
+            ENDOGENOUS_PROJECT_RISK : boolean
+                This parameter defines, whether an additional, project-specific
+                risk shall be calculated from RISK_PARAM.
+                REFERENCE: Deloitte (2024): "Financing the Green Energy Transition:
                 Innovative financing for a just transition"
+            MISSING: OBSERVE_PAST
 
         Raises
         ------
         Warning
-            DESCRIPTION.
+            "Repayment period is longer than the analyzed project period. - Consider an open PRINCIPAL in the definition of the TERMINAL_VALUE"
+        Warning
+            "No risks have been defined."
         ValueError
-            DESCRIPTION.
+            "Not enough data to observe the chosen point in history. Decrease parameter -OBSERVE_PAST-"
+        ValueError
+            "The defined dict RISK_PARAM includes unknown parameters (check spelling)"
+        ValueError
+            "Attribute LIFETIME cannot be randomized."
+        ValueError
+            "Attribute LIFETIME must be constant."
+        ValueError
+            "Length of given attribute values must be equal to LIFETIME for attribute:", attr
+         ValueError
+            "Unknown input format provided for attribute:", attr, ". Allowed formats are -int-, -float-, and numpy arrays."
         AttributeError
-            DESCRIPTION.
+            "The risk", check_risk, "must be defined with a correlation to the MSCI (World)."
+        AttributeError
+            "Given correlations of risk", risk_x, "and risk", risk_y, "are not equal. Please check the input."
 
         Returns
         -------
@@ -137,17 +157,17 @@ class Project(Indicators, Risks):
         # The "TERMINAL_VALUE" of the project is the value of the project after depreciation over the LIFETIME.
         self.ATTR["TERMINAL_VALUE"] = TERMINAL_VALUE
         # Expected lifetime of the project [a] - This can also be a sub-period of the project.
-        self.ATTR["LIFETIME"] = LIFETIME
+        self.ATTR["TECHNICAL_LIFETIME"] = TECHNICAL_LIFETIME
         # Average repayment period of all debts [a] - Can differ from LIFETIME, but defaults to LIFETIME.
-        self.ATTR["REPAYMENT_PERIOD"] = kwargs.get("REPAYMENT_PERIOD", LIFETIME)
+        self.ATTR["DEPRECIATION_PERIOD"] = kwargs.get("DEPRECIATION_PERIOD", TECHNICAL_LIFETIME) #change everywhere and life time to technical lifetime
         # Yearly capital expenditure [US$/year]
-        self.ATTR["CAPEX"] = K_INVEST / LIFETIME
+        self.ATTR["CAPEX"] = K_INVEST / TECHNICAL_LIFETIME
         # Yearly operational expenses, excluding energy inflow costs [US$/year]
         self.ATTR["OPEX"] = OPEX
         # Subsidy in an annual resolution.
         self.ATTR["SUBSIDY"] = kwargs.get("SUBSIDY", 0)
                
-        if self.ATTR["REPAYMENT_PERIOD"] > self.ATTR["LIFETIME"]:
+        if self.ATTR["DEPRECIATION_PERIOD"] > self.ATTR["TECHNICAL_LIFETIME"]:
             raise Warning("Repayment period is longer than the analyzed project period. - Consider an open PRINCIPAL in the definition of the TERMINAL_VALUE")
             
         #______FINANCIAL INDICATORS______
@@ -183,7 +203,7 @@ class Project(Indicators, Risks):
         #get data of S&P500
         SP500_data = yf.download("^GSPC", start=START_DATE, end=END_DATE)
         SP500_daily_returns = SP500_data['Adj Close'].pct_change()
-        SP500_annual_returns = SP500_daily_returns.resample('Y').sum()[1:-1]
+        SP500_annual_returns = SP500_daily_returns.resample('YE').sum()[1:-1]
         #get data of MSCI ACWI
         MSCI_ACWI_data = yf.download("ACWI", start=START_DATE, end=END_DATE)
         MSCI_first_data_point = date(2008, 3, 28)
@@ -191,7 +211,7 @@ class Project(Indicators, Risks):
         if ten_years_ago_date < MSCI_first_data_point:
             raise ValueError("Not enough data to observe the chosen point in history. Decrease parameter -OBSERVE_PAST-")
         MSCI_ACWI_daily_returns = MSCI_ACWI_data['Adj Close'].pct_change()
-        MSCI_ACWI_annual_returns = MSCI_ACWI_daily_returns.resample('Y').sum()[1:-1]
+        MSCI_ACWI_annual_returns = MSCI_ACWI_daily_returns.resample('YE').sum()[1:-1]
         self.ATTR["MSCI"] = MSCI_ACWI_annual_returns.mean()
         
         # Risk free rate, e.g. national government bonds
@@ -233,10 +253,10 @@ class Project(Indicators, Risks):
         #Iterate over all attributes and expand them to full random spectrum, 
         #if they are given as arrays over the LIFETIME or defined as risks.
         for a, attr in enumerate(self.ATTR):
-            random_shape = np.zeros(shape=(LIFETIME,self.RANDOM_DRAWS))
+            random_shape = np.zeros(shape=(TECHNICAL_LIFETIME,self.RANDOM_DRAWS))
             if isinstance(self.ATTR[attr], int) or isinstance(self.ATTR[attr], float):
                 if attr in list(self.RISK_PARAM): #attribute is defined as a risk
-                    if attr == "LIFETIME":
+                    if attr == "TECHNICAL_LIFETIME":
                         raise ValueError("Attribute LIFETIME cannot be randomized.")
                     elif attr == "K_INVEST":
                         #K_INVEST is not an annually constant value. It's a one-time value (initial investment).
@@ -254,7 +274,7 @@ class Project(Indicators, Risks):
                         random_shape[:] = constant_mean
                         self.ATTR[attr] = random_shape
                 else: #attribute is not defined as a risk or given as an array.
-                    if attr in ["INTEREST", "LIFETIME", "REPAYMENT_PERIOD", 
+                    if attr in ["INTEREST", "TECHNICAL_LIFETIME", "DEPRECIATION_PERIOD",
                                 "EQUITY_SHARE", "CRP", "CRP_EXPOSURE", 
                                 "CORPORATE_TAX_RATE", "DEBT_SHARE", "R_FREE",
                                 "MSCI", "ERP_MATURE", "BETA_UNLEVERED", "ENDOGENOUS_PROJECT_RISK",
@@ -278,16 +298,16 @@ class Project(Indicators, Risks):
                         self.ATTR[attr] = random_shape
                         #keep the value as an int or float.
             elif isinstance(self.ATTR[attr], np.ndarray): #attribute is given as a numpy array.
-                if attr == "LIFETIME":
+                if attr == "TECHNICAL_LIFETIME":
                     raise ValueError("Attribute LIFETIME must be constant.")
                 #in this case, the mean value changes over the lifetime.
                 #____check, if enough values are given (#of values == LIFETIME)
-                if len(self.ATTR[attr]) == self.ATTR["LIFETIME"]:
+                if len(self.ATTR[attr]) == self.ATTR["TECHNICAL_LIFETIME"]:
                     changing_mean = self.ATTR[attr].copy() #this is an array
                     random_shape[:,:] = changing_mean[:, np.newaxis]
                     self.ATTR[attr] = random_shape
                 else:
-                    raise ValueError("Length of given attribute values must be equal to LIFETIME for attribute:", attr)
+                    raise ValueError("Length of given attribute values must be equal to TECHNICAL_LIFETIME for attribute:", attr)
             else:
                 raise ValueError("Unknown input format provided for attribute:", attr, ". Allowed formats are -int-, -float-, and numpy arrays.")
                 
@@ -321,7 +341,7 @@ class Project(Indicators, Risks):
         # Calculate risks, if RISK_PARAM is given.
         if len(self.RISK_PARAM):
             #Define risks for each time step (year) in lifetime.
-            for t in range(self.ATTR["LIFETIME"]):
+            for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
                 TIMESTEP_RISKS = self.get_risks(t)
                 #iteration of each risk within a time step t.
                 for r, risk in enumerate(self.RISK_PARAM):

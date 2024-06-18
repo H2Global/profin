@@ -191,7 +191,7 @@ for t_scale in [1,2,4]:
                      K_E_out=K_E_out,
                      K_INVEST=K_INVEST, 
                      TERMINAL_VALUE=TERMINAL_VALUE,
-                     LIFETIME=TECHNICAL_LIFETIME,
+                     TECHNICAL_LIFETIME=TECHNICAL_LIFETIME,
                      OPEX=OPEX, 
                      EQUITY_SHARE=EQUITY_SHARE,
                      COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM, 

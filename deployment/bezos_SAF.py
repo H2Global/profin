@@ -114,7 +114,7 @@ for s in list(scenarios):
                      K_E_out=K_E_out_ARRAY,
                      K_INVEST=K_INVEST_temp, #Cesaro et al.
                      TERMINAL_VALUE=K_INVEST_temp*(1-LIFETIME_TEMP/TECHNICAL_LIFETIME),
-                     LIFETIME=LIFETIME_TEMP,
+                     TECHNICAL_LIFETIME=LIFETIME_TEMP,
                      OPEX=K_INVEST_temp*0.015, #1.5% of CAPEX
                      EQUITY_SHARE=scenarios[s]["Equity_Share"],
                      COUNTRY_RISK_PREMIUM=scenarios[s]["CRP"], #Damodaran CRP for Kenya: 9.86%
@@ -173,7 +173,7 @@ for s in list(scenarios):
 for s in list(scenarios):
     print(s)
     
-    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["LIFETIME"]
+    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["TECHNICAL_LIFETIME"]
     start_year = 2030
     years = np.arange(start_year, LIFETIME_TEMP+start_year)
     
@@ -223,7 +223,7 @@ for s in list(scenarios):
 for s in list(scenarios):
     print(s)
     
-    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["LIFETIME"]
+    LIFETIME_TEMP = STORE_RESULTS[s]["ATTR"]["TECHNICAL_LIFETIME"]
     WACC_TEMP = STORE_RESULTS[s]["WACC"]
     
     years = np.arange(LIFETIME_TEMP+1)
@@ -273,7 +273,7 @@ for s in list(scenarios):
     
     #____derive third and fourth plot (terminal values)
     #Accounting for open principal payments.
-    REPAYMENT_PERIOD = STORE_RESULTS[s]["ATTR"]["REPAYMENT_PERIOD"]
+    REPAYMENT_PERIOD = STORE_RESULTS[s]["ATTR"]["DEPRECIATION_PERIOD"]
     INVEST_TEMP = STORE_RESULTS[s]["ATTR"]["K_INVEST"].mean()
     if REPAYMENT_PERIOD > LIFETIME_TEMP:
         RATIO_OPEN_PRINCIPAL = 1-(LIFETIME_TEMP / REPAYMENT_PERIOD)
