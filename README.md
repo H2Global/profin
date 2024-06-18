@@ -21,6 +21,7 @@ Version 1.0 of this package was published on PyPI on 27/02/2024.
 - [Model Purpose and General Information](#Model-Purpose-and-General-Information)
 - [Installation Instructions](#Installation-Instructions)
 - [Workflow](#Workflow)
+- [Examples](#Examples)
 - [Testing](#Testing)
 - [Contributing](#Contributing)
 - [License](#License)
@@ -39,7 +40,7 @@ Additional features:
 
 - Monte-Carlo simulation of specific project risks
 - Simulation of funding demand (H2Global, CfD, etc.) to achieve positive net present value
-- API link to yahoo-finance for latest financial data
+- API link to  [yahoo-finance](https://finance.yahoo.com) for latest financial data
 
 ### <u>OUTPUT</u>
 - Weighted Average Cost of Capital (**WACC**)
@@ -77,7 +78,8 @@ Additional features:
     ```bash
     pip install -e
 
-## Workflow
+## Examples
+
 
 ## Testing
 

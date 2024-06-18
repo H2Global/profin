@@ -12,8 +12,8 @@ import terminal_model as tm
 
 #%% INPUT PARAMETERS
 
-INFRASTRUCTURE = "Storage" # Pipeline, Terminal, Storage
-Terminal_Type = "SNG" #NH3, LH2, SNG
+INFRASTRUCTURE = "Terminal" # Pipeline, "Terminal", Storage
+Terminal_Type = "LOHC" #NH3, LH2, SNG, LOHC
 SUBSIDY_DICT = {}
 CASHFLOW_DICT = {}
 
