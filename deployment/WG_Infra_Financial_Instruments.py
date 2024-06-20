@@ -82,7 +82,7 @@ for t_scale in [1,2,4]:
         #Terminal type: NH3, LH2, SNG
         energycarrier = Terminal_Type
         #Yearly energy import in TWh
-        energysupply = 60
+        energysupply = 60 # TWh/year
         #Assuming ~37 tank turn per year (a ship load every 6 days and a capacity factor of 1.64) --> Derived from LNG-Brunsbüttel & Stade
         #____Brunsbüttel: Tank volume - 330.000 m³, Capacity - 10 Billion m³/year
         #____Stade: Tank volume (LNG) - 480.000 m³, Capacity (Natural gas, with lower density) - 13.3 Billion m³/year
@@ -289,7 +289,7 @@ for t_scale in [1,2,4]:
                                  K_E_out=K_E_out,
                                  K_INVEST=K_INVEST_SUBSIDY, 
                                  TERMINAL_VALUE=TERMINAL_VALUE,
-                                 LIFETIME=TECHNICAL_LIFETIME,
+                                 TECHNICAL_LIFETIME=TECHNICAL_LIFETIME,
                                  OPEX=OPEX, 
                                  EQUITY_SHARE=EQUITY_SHARE,
                                  COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM, 
