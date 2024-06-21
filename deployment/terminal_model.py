@@ -25,7 +25,8 @@ class Core:
 
     def calculate_tank_volume(self):
         if self.energycarrier == "LOHC":
-            self.tank_volume = 3300.00 #ton_carrier/tank
+            #self.tank_volume = 3300.00 #ton_carrier/tank
+            self.tank_volume = 61600.00  # ton_carrier/tank
             self.tank_needed = self.energysupply / 33.33 * 1e6 / 57 * 1040 / self.tank_volume # TWh / (kWh/kgH2) * (kWh/TWh) * (ton/kg) / (kgH2/m3LOHC) * (kgLOHC/m3LOHC) / (tonLOHC/tank)
             #LOHC contains 54 kg of hydrogen per cubic metre
             #LOHC weighs 871 kg per cubic metre
@@ -34,7 +35,8 @@ class Core:
         if self.energycarrier == "LOHC":
             if self.tank_needed is None:
                 self.calculate_tank_volume()
-            self.CAPEX = self.tank_needed * 85 * 1e6 # USD
+            #self.CAPEX = self.tank_needed * 85 * 1e6 # USD
+            self.CAPEX = self.tank_needed * 35 * 1e6  # USD
             return self.CAPEX
 
     def get_opex_terminal(self):
