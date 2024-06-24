@@ -5,7 +5,7 @@ which can be used to conduct financial analysis
 of energy projects.
 
 profin has been developed as an open-source tool by 
-[H2 Global Fondation](https://www.h2-global.de/) 
+[H2 Global Foundation](https://www.h2-global.de/) 
 in the [BMBF](https://www.bmbf.de/bmbf/en/home/home_node.html)-funded
 research project “H2Global meets Africa".
  
@@ -20,7 +20,6 @@ Version 1.0 of this package was published on PyPI on 27/02/2024.
 - [Contents](#contents)
 - [Model Purpose and General Information](#Model-Purpose-and-General-Information)
 - [Installation Instructions](#Installation-Instructions)
-- [Workflow](#Workflow)
 - [Example](#Example)
 - [Testing](#Testing)
 - [Contributing](#Contributing)
@@ -53,12 +52,13 @@ Additional features:
 - **Funding demand** for NPV=0
 
 ## Installation Instructions
+To set up profin locally, follow these steps:
 
 1. Download or clone the repository to a local folder:
    ```bash
-   git clone <repository-url>
+   git clone <https://github.com/H2Global/profin>
 
-2. Open (Anaconda) Prompt.
+2. Open Anaconda Prompt.
 
 3. Create a new environment from reference_environment.yml file (recommended):
     ```bash
@@ -79,57 +79,61 @@ Additional features:
     pip install -e
 
 ## Example
+An example project configuration and calculation are provided in
+[example_project](https://github.com/H2Global/profin/blob/master/deployment/example_project.py).  
+This example illustrates the variables that must be defined in a Project-type class. 
+Some variables may require an array, while others may be a single number.
+There are also some variables that are optional; if not defined, they will retain their default values.
 
-`import profin as pp`
+```py
+import profin as pp
 
+#Create a project instance with necessary parameters_ 
 p_example = pp.Project(  
-                 E_in = , # Energy input in kWh per year  
-                 E_out =  , # Energy output in kWh per year  
-                 K_E_in = , # Energy input price in $ per kWh  
-                 K_E_out = , # Energy output price in $ per kWh  
-                 K_INVEST = , # Investment costs in $  
-                 TERMINAL_VALUE = , # Liquidation revenues at the end of the period in $  
-                 TECHNICAL_LIFETIME = , # Analyzed lifetime of the project in years  
-                 OPEX = , #  Annual costs (not including energy costs) in $ per year  
-                 EQUITY_SHARE = , # Share of equity investment in %  
-                 COUNTRY_RISK_PREMIUM = , # Extra return demanded by investors for higher risks in foreign markets  
-                 INTEREST = , # Interest rate to be paid on the debt capita   
-                 CORPORATE_TAX_RATE = , # Tax rate the project must pay within the country of operation in %  
-                 RISK_PARAM = , # Define risk parameters. Set to {} to ignore risk   
-                 OBSERVE_PAST = , # Days back from today to start the 10-year data window   
-                 ENDOGENOUS_BETA = ,  # Set True to calculate project-specific risk from RISK_PARAM, otherwise False  
-                 _**OPTIONAL**_:  
-                 REPAYMENT_PERIOD = , # Repayment period for loans and depreciation for equity in years,
-                 defaults to project's lifetime  
-                 SUBSIDY = , # Annual subsidy for the project, defaults to 0    
-                 CRP_EXPOSURE = , # Project's exposure to country risk, ranging from 0 to 1, defaults to 1   
+                 E_in = [], # Energy input in kWh per year  
+                 E_out = [] , # Energy output in kWh per year  
+                 K_E_in = [], # Energy input price in $ per kWh  
+                 K_E_out = [], # Energy output price in $ per kWh  
+                 K_INVEST = [], # Investment costs in $  
+                 TERMINAL_VALUE = ..., # Liquidation revenues at the end of the period in $  
+                 TECHNICAL_LIFETIME = ..., # Analyzed lifetime of the project in years  
+                 OPEX = [], #  Annual costs (not including energy costs) in $ per year  
+                 EQUITY_SHARE = ..., # Share of equity investment in %  
+                 COUNTRY_RISK_PREMIUM = ..., # Extra return demanded by investors for higher risks in foreign markets  
+                 INTEREST = ..., # Interest rate to be paid on the debt capita   
+                 CORPORATE_TAX_RATE = ..., # Tax rate the project must pay within the country of operation in %  
+                 RISK_PARAM = ..., # Define risk parameters. Set to {} to ignore risk   
+                 OBSERVE_PAST = ..., # Days back from today to start the 10-year data window   
+                 ENDOGENOUS_BETA = ...,  # Set True to calculate project-specific risk from RISK_PARAM, otherwise False  
+                 #OPTIONAL:  
+                 REPAYMENT_PERIOD = ..., # Repayment period for loans and depreciation for equity in years, defaults to project's lifetime  
+                 SUBSIDY = ..., # Annual subsidy for the project, defaults to 0    
+                 CRP_EXPOSURE = ..., # Project's exposure to country risk, ranging from 0 to 1, defaults to 1   
                  )
 
-_Calculate Internal Rate of Return (IRR)_  
-`IRR = p_example.get_IRR()`  
-`print("____IRR:", IRR.mean())`
+#Calculate Internal Rate of Return (IRR)
+IRR = p_example.get_IRR()
+print("____IRR:", IRR.mean())
 
-_Calculate WACC for further calculations:_  
-`WACC = p_example.get_WACC()`  
-`print("____WACC:", WACC.mean())`
+#Calculate WACC for further calculations: 
+WACC = p_example.get_WACC()
+print("____WACC:", WACC.mean())
 
-_Calculate net present value (NPV):_  
-`NPV = p_example.get_NPV(WACC)`  
-`print("____mean NPV:", NPV.mean())`
+#Calculate net present value (NPV):  
+NPV = p_example.get_NPV(WACC)
+print("____mean NPV:", NPV.mean())
 
-_Calculate the value-at-risk (VaR):_  
-`VaR = p_example.get_VaR(NPV)`  
-`print("____VaR:", VaR)`
+#Calculate the value-at-risk (VaR):
+VaR = p_example.get_VaR(NPV)
+print("____VaR:", VaR)
 
-_Calculate the Levelized Cost of Energy (LCOE):_  
-`LCOE = p_example.get_LCOE(WACC)`  
-`print("____LCOE:", LCOE.mean())`
+#Calculate the Levelized Cost of Energy (LCOE): 
+LCOE = p_example.get_LCOE(WACC)
+print("____LCOE:", LCOE.mean())
 
-
-_Operating and non-operating cashflows:_  
-`operating_cashflow, operating_cashflow_std, 
-non_operating_cashflow, non_operating_cashflow_std = p_example.get_cashflows(WACC)`
-
+#Calculate Operating and non-operating cashflows:
+operating_cashflow, operating_cashflow_std, non_operating_cashflow, non_operating_cashflow_std = p_example.get_cashflows(WACC)
+```
 
 ## Testing
 The testing suite is located in the [test](https://github.com/H2Global/profin/tree/master/test) directory. 
