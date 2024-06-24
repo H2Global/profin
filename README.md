@@ -1,6 +1,6 @@
 # profin - A Python Package for <u>Pro</u>ject <u>Fin</u>ance
 
-This repository holds a Python package named pyproject, 
+This repository holds a Python package named profin, 
 which can be used to conduct financial analysis
 of energy projects.
 
