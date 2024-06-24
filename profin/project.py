@@ -65,7 +65,7 @@ class Project(Indicators, Risks):
             This is the analyzed lifetime of the project. All cashflows are calculated for this lifetime.
         OPEX : int, float, array
             Annual operational expenditure.
-        EQUITY_SHARE : float, array
+        EQUITY_SHARE : float, array #why array -> we should have a look together
             Share of equity investment compared to total capital structure (debt + equity).
         COUNTRY_RISK_PREMIUM : int, float, array
             This is the additional expected return of equity investors, when facing the investments in the respective country.
@@ -110,7 +110,9 @@ class Project(Indicators, Risks):
                 risk shall be calculated from RISK_PARAM.
                 REFERENCE: Deloitte (2024): "Financing the Green Energy Transition:
                 Innovative financing for a just transition"
-            MISSING: OBSERVE_PAST
+            OBSERVE_PAST : int
+                Specifies the number of days to extend the observation period beyond today,
+                effectively moving the start of the 10-year window for historical data retrieval further into the past.
 
         Raises
         ------

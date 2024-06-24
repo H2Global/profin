@@ -78,8 +78,8 @@ p_example = pp.Project(
                  COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM, #Damodaran CRP for Kenya: 9.86%
                  INTEREST=INTEREST,
                  CORPORATE_TAX_RATE=CORPORATE_TAX_RATE, #Damodaran for Kenya: 30%
-                 RISK_PARAM={},
-                 OBSERVE_PAST=0,
+                 RISK_PARAM=RISK_PARAM, # Set = {} for not considering risk
+                 OBSERVE_PAST=0, # if set to 0, the 10-year observation window starts from today
                  ENDOGENOUS_BETA=False,
                  REPAYMENT_PERIOD=DEPRECIATION_PERIOD
                  )
@@ -116,16 +116,16 @@ STORE_RESULTS = {
     "IRR" : IRR,
     "WACC" : WACC,
     "NPV" : NPV,
-    "VaR" : VaR, 
+    "VaR" : VaR,
     "LCOE" : LCOE,
     "ATTR" : p_example.ATTR,
     "OCF" : operating_cashflow,
     "OCF_std" : operating_cashflow_std,
     "NOCF" : non_operating_cashflow,
-    "NOCF_std" : non_operating_cashflow_std,  
+    "NOCF_std" : non_operating_cashflow_std,
     "Offtake_Value" : Offtake_Value
     }
-    
+
 #%% Visualize annual non-discounted cashflows   
 LIFETIME_TEMP = STORE_RESULTS["ATTR"]["TECHNICAL_LIFETIME"]
 start_year = 2030
@@ -140,7 +140,7 @@ NOCF_std = STORE_RESULTS["NOCF_std"]
 #CASHFLOW BALANCE
 CF = OCF+NOCF
 CF_STD = OCF_std+NOCF_std
-    
+
 fig_0, ax_0 = plt.subplots()
 
 
@@ -168,9 +168,9 @@ print("____NPV:", round(STORE_RESULTS["NPV"].mean()*1e-6,2), " USD Million")
 print("____VaR:", round(STORE_RESULTS["VaR"]*1e-6,2), " USD Million")
 print("____LCOE:", round(STORE_RESULTS["LCOE"].mean(),3), " USD/kWh")
 print("____Offtake_Value:", round(STORE_RESULTS["Offtake_Value"]*1e-9,2), " USD Billion")
-    
+
 #%% Visualize development of NPV over project lifetime
-    
+
 LIFETIME_TEMP = STORE_RESULTS["ATTR"]["TECHNICAL_LIFETIME"]
 WACC_TEMP = STORE_RESULTS["WACC"]
 
@@ -198,7 +198,7 @@ NPV_cum = NPV.cumsum()
 
 #PLOTTING
 fig, ax = plt.subplots()
-    
+
 line_width = 0.8
 #____derive first plot (initial invest)
 plot_invest = NPV_cum.copy()
@@ -214,10 +214,10 @@ offset_zero = 0.5 / delta_x
 #____derive second plot (positive cashflows)
 for year_temp in range(1, LIFETIME_TEMP+1):
     x_position = year_temp/delta_x
-    ax.axhline(y=NPV_cum[year_temp], 
-                color='black', 
-                xmin=x_position - (1/delta_x)*0.4 + offset_zero, 
-                xmax=x_position + (1/delta_x)*0.4 + offset_zero, 
+    ax.axhline(y=NPV_cum[year_temp],
+                color='black',
+                xmin=x_position - (1/delta_x)*0.4 + offset_zero,
+                xmax=x_position + (1/delta_x)*0.4 + offset_zero,
                 linestyle='-')
 
 #____derive third and fourth plot (terminal values)
@@ -252,7 +252,7 @@ else:
     #plot terminal value on top of positive NPV in green 
     plot_npv[-1] = NPV_cum[-1]+terminal_value
     ax.bar(years, plot_npv, bottom=0, color='green', width=line_width, label="Positive NPV")
-    
+
 ax.set_xlabel('Years')
 ax.set_ylabel('Net present value [US$]')
 #ax.ylim(0, 4*1e8)

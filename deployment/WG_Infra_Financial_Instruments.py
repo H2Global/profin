@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import profin as pp
 import terminal_model as tm
+import Country_Risk
 
 #%% INPUT PARAMETERS
 
@@ -82,7 +83,7 @@ for t_scale in [1,2,4]:
         #Terminal type: NH3, LH2, SNG
         energycarrier = Terminal_Type
         #Yearly energy import in TWh
-        energysupply = 60
+        energysupply = 60 # TWh/year
         #Assuming ~37 tank turn per year (a ship load every 6 days and a capacity factor of 1.64) --> Derived from LNG-Brunsbüttel & Stade
         #____Brunsbüttel: Tank volume - 330.000 m³, Capacity - 10 Billion m³/year
         #____Stade: Tank volume (LNG) - 480.000 m³, Capacity (Natural gas, with lower density) - 13.3 Billion m³/year
@@ -144,16 +145,28 @@ for t_scale in [1,2,4]:
     #____Equity: Reference: RMI (2024): "Oceans of opportunity", annex
     EQUITY_SHARE=0.3
     #____Country risk (see Damodaran)
-    COUNTRY_RISK_PREMIUM=0 # Europe
+    #COUNTRY_RISK_PREMIUM=0 # Europe
     #____Interest
     INTEREST=0.04
     #____Tax rate
-    CORPORATE_TAX_RATE=0.2
+    #CORPORATE_TAX_RATE=0.2
     
     #DEFINE NO RISK PARAMETERS
     E_out_max_array = np.zeros(shape=DEPRECIATION_PERIOD)
     E_out_max_array[:] = E_max
-    
+
+    country = "INFRASTRUCTURE"
+
+    country_risk = Country_Risk.country_parameters[country]
+
+    # Definisci le variabili con i valori specifici del paese
+    COUNTRY_RISK_PREMIUM = country_risk["COUNTRY_RISK_PREMIUM"]
+    CORPORATE_TAX_RATE = country_risk["CORPORATE_TAX_RATE"]
+    r_free = country_risk["R_FREE"]
+    erp_mature = country_risk["ERP_MATURE"]
+
+
+
     RISK_PARAM = {
         "K_INVEST" : {
             "distribution" : "normal",
@@ -197,12 +210,12 @@ for t_scale in [1,2,4]:
                      COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM, 
                      INTEREST=INTEREST,
                      CORPORATE_TAX_RATE=CORPORATE_TAX_RATE, 
-                     RISK_PARAM=RISK_PARAM,
+                     RISK_PARAM={},
                      OBSERVE_PAST=0,
                      ENDOGENOUS_PROJECT_RISK=False,
                      REPAYMENT_PERIOD=DEPRECIATION_PERIOD,
-                     R_FREE=0.045,
-                     ERP_MATURE=0.065,
+                     R_FREE=r_free,
+                     ERP_MATURE=erp_mature,
                      )
     
     #CALCULATION OF FINANCIAL METRICS
@@ -289,7 +302,7 @@ for t_scale in [1,2,4]:
                                  K_E_out=K_E_out,
                                  K_INVEST=K_INVEST_SUBSIDY, 
                                  TERMINAL_VALUE=TERMINAL_VALUE,
-                                 LIFETIME=TECHNICAL_LIFETIME,
+                                 TECHNICAL_LIFETIME=TECHNICAL_LIFETIME,
                                  OPEX=OPEX, 
                                  EQUITY_SHARE=EQUITY_SHARE,
                                  COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM, 
