@@ -104,10 +104,11 @@ p_example = pp.Project(
                  CORPORATE_TAX_RATE = ..., # Tax rate the project must pay within the country of operation in %  
                  RISK_PARAM = ..., # Define risk parameters. Set to {} to ignore risk   
                  OBSERVE_PAST = ..., # Days back from today to start the 10-year data window   
-                 ENDOGENOUS_BETA = ...,  # Set True to calculate project-specific risk from RISK_PARAM, otherwise False  
                  #OPTIONAL:  
-                 REPAYMENT_PERIOD = ..., # Repayment period for loans and depreciation for equity in years, defaults to project's lifetime  
+                 ENDOGENOUS_BETA = ...,  # Set True to calculate project-specific risk from RISK_PARAM, otherwise False  
+                 DEPRECIATION_PERIOD = ..., # Repayment period for loans and depreciation for equity in years, defaults to project's lifetime  
                  SUBSIDY = ..., # Annual subsidy for the project, defaults to 0    
+                 ENDOGENOUS_PROJECT_RISK = ..., # Set True to calculate project-specific risk from RISK_PARAM, otherwise False  
                  CRP_EXPOSURE = ..., # Project's exposure to country risk, ranging from 0 to 1, defaults to 1   
                  )
 

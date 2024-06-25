@@ -267,7 +267,7 @@ class Indicators():
         ANNUAL_INTEREST = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"]*self.ATTR["COST_OF_DEBT"]).T #assuming constant and linear interest payments
         ANNUAL_PRINCIPAL = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"] / self.ATTR["DEPRECIATION_PERIOD"]).T #assuming constant and linear principal payments
         if self.ATTR["DEPRECIATION_PERIOD"] < self.ATTR["TECHNICAL_LIFETIME"]:
-            YEARS_WITHOUT_PRINCIPAL = self.ATTR["LIFETIME"] - self.ATTR["REPAYMENT_PERIOD"]
+            YEARS_WITHOUT_PRINCIPAL = self.ATTR["TECHNICAL_LIFETIME"] - self.ATTR["DEPRECIATION_PERIOD"]
             ANNUAL_PRINCIPAL[-YEARS_WITHOUT_PRINCIPAL:] = 0
             ANNUAL_INTEREST[-YEARS_WITHOUT_PRINCIPAL:] = 0
         
