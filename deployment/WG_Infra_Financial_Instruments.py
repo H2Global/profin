@@ -156,6 +156,7 @@ for t_scale in [1, 2, 4]:
     E_out_max_array[:] = E_max
 
     country = "INFRASTRUCTURE"
+    # "Morocco", "Kenya", "Chile", "Italy", "Spain", "Australia", "Austria", "France", "Japan", "South Africa", "INFRASTRUCTURE"
 
     country_risk = Country_Risk.country_parameters[country]
 

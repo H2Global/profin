@@ -105,7 +105,7 @@ p_example = pp.Project(
                  RISK_PARAM = ..., # Define risk parameters. Set to {} to ignore risk   
                  OBSERVE_PAST = ..., # Days back from today to start the 10-year data window   
                  #OPTIONAL:  
-                 ENDOGENOUS_BETA = ...,  # Set True to calculate project-specific risk from RISK_PARAM, otherwise False  
+                 #OBSERVE_PAST = ..., # Days back from today to start the 10-year data window  
                  DEPRECIATION_PERIOD = ..., # Repayment period for loans and depreciation for equity in years, defaults to project's lifetime  
                  SUBSIDY = ..., # Annual subsidy for the project, defaults to 0    
                  ENDOGENOUS_PROJECT_RISK = ..., # Set True to calculate project-specific risk from RISK_PARAM, otherwise False  

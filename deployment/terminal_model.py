@@ -22,6 +22,8 @@ class Core:
         self.tank_needed = None
         self.CAPEX = None
         self.OPEX = None
+        self.Conv_CAPEX = None
+        self.Conv_OPEX = None
 
     def calculate_tank_volume(self):
         if self.energycarrier == "LOHC":
@@ -39,11 +41,28 @@ class Core:
             self.CAPEX = self.tank_needed * 35 * 1e6  # USD
             return self.CAPEX
 
+    def get_opex_reconversion(self):
+        if self.energycarrier == "LOHC":
+            fuel_consumption = self.energysupply / 33.33 * 1e6 * 13.6 # kWh_fuel/year
+            # 13.6 kWh_fuel/kgH2  for reconversion according to EIA Global Hydrogen Rewiew 2023
+            electricity_consumption = self.energysupply / 33.33 * 1e6 * 1.5 #kWh_e/year
+            # 1.5 kWh_electircity/kgH2  for reconversion according to EIA Global Hydrogen Rewiew 2023
+            fuel_cost = 0.102 # €/kWh_H2
+            electricity_cost = 0.05 # €/kWh_H2
+            self.Conv_OPEX = fuel_consumption * fuel_cost + electricity_consumption * electricity_cost # €/year
+            return self.Conv_OPEX
+
     def get_opex_terminal(self):
         if self.energycarrier == "LOHC":
             if self.CAPEX is None:
                 self.get_capex_terminal()
-            self.OPEX = self.CAPEX * 0.03
+                self.get_opex_reconversion()
+            self.OPEX = self.CAPEX * 0.03 + self.Conv_OPEX
 
             return self.OPEX
+
+
+
+
+
 

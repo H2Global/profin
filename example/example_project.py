@@ -76,7 +76,6 @@ p_example = pp.Project(
     CORPORATE_TAX_RATE=CORPORATE_TAX_RATE,  #Damodaran for Kenya: 30%
     RISK_PARAM=RISK_PARAM,  # Set = {} for not considering risk
     OBSERVE_PAST=0,  # if set to 0, the 10-year observation window starts from today
-    ENDOGENOUS_BETA=False,
     DEPRECIATION_PERIOD=DEPRECIATION_PERIOD
 )
 
