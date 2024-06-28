@@ -15,6 +15,7 @@ import Country_Risk
 
 INFRASTRUCTURE = "Terminal" # Pipeline, "Terminal", Storage
 Terminal_Type = "LOHC" #NH3, LH2, SNG, LOHC
+Conversion_Terminal = True
 SUBSIDY_DICT = {}
 CASHFLOW_DICT = {}
 
@@ -67,7 +68,7 @@ for t_scale in [1,2,4]:
     
         #UTILIZATION
         #Khan, M.A., Young, C. and Layzell, D.B. (2021). The Techno-Economics of Hydrogen Pipelines. Transition Accelerator Technical Briefs Vol. 1, Issue 2, Pg. 1-40. ISSN 2564-1379.
-        #____Max. pipeline throughput: 306.636*1e+6 kWh/day OR 9235 tons/day
+        #____Max. pipeline throughput: 307.8*1e+6 kWh/day OR 9235 tons/day
         E_max = 307.8*1e+6*365
         E_in = E_max * utilization_curve #kWh hydrogen throughput
         #____Electricity price USD/kWh = No costs.
@@ -89,13 +90,43 @@ for t_scale in [1,2,4]:
         #____Stade: Tank volume (LNG) - 480.000 m³, Capacity (Natural gas, with lower density) - 13.3 Billion m³/year
         terminal = tm.Core(energycarrier, energysupply)
         
-        CAPEX_temp = terminal.get_capex_terminal()
-        print("Terminal CAPEX:", round(CAPEX_temp*1e-6, 2), " Million €")
-        OPEX_temp = terminal.get_opex_terminal()
-        print("Terminal OPEX:", round(OPEX_temp*1e-6, 2), " Million €")
-        
-        tank_size = terminal.tank_.volume
-        print("Terminal tank size:", round(tank_size, 2), " m³")
+        if Conversion_Terminal:
+            if energycarrier == "LOHC":
+                raise AttributeError("LOHC Terminal not yet defined.")
+            else:
+                CAPEX_temp = terminal.get_capex_terminal()
+                print("Terminal CAPEX:", round(CAPEX_temp*1e-6, 2), " Million €")
+                OPEX_temp = terminal.get_opex_terminal()
+                print("Terminal OPEX:", round(OPEX_temp*1e-6, 2), " Million €")
+                
+                tank_size = terminal.tank_.volume
+                print("Terminal tank size:", round(tank_size, 2), " m³")
+        else:
+            if energycarrier == "LOHC":
+                raise AttributeError("LOHC Terminal not yet defined.")
+            else:
+                CAPEX_with_conversion = terminal.get_capex_terminal()
+                OPEX_with_conversion = terminal.get_opex_terminal()
+                
+                if energycarrier == "SNG":
+                    CAPEX_conversion = terminal.reformer_.get_capex()
+                    OPEX_conversion = terminal.reformer_.get_e_costs() + terminal.reformer_.get_co2_shipping_costs()
+                elif energycarrier == "NH3":
+                    CAPEX_conversion = terminal.cracker_.get_capex()
+                    OPEX_conversion = terminal.cracker_.get_e_costs() 
+                elif energycarrier == "LH2":
+                    CAPEX_conversion = 0
+                    OPEX_conversion = 0
+                else:
+                    raise AttributeError("No such carrier defined.")
+                
+                CAPEX_temp = CAPEX_with_conversion - CAPEX_conversion
+                OPEX_temp = OPEX_with_conversion - OPEX_conversion
+                print("Terminal CAPEX without conversion:", round(CAPEX_temp*1e-6, 2), " Million €")
+                print("Terminal OPEX without conversion:", round(OPEX_temp*1e-6, 2), " Million €")
+                
+                tank_size = terminal.tank_.volume
+                print("Terminal tank size:", round(tank_size, 2), " m³")
         
         #CAPEX and OPEX
         K_INVEST = np.zeros(shape=DEPRECIATION_PERIOD)
