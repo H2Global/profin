@@ -234,7 +234,7 @@ class Project(Indicators, Risks):
             self.ATTR["ERP_MATURE"] = np.float64(ERP_MATURE_EXT)
             
         # Derived from balance sheets and income statements of H2Global donors
-        self.ATTR["BETA_UNLEVERED"] = kwargs.get("BETA_UNLEVERED", 0.54) #0.54 for damodaran green & renewables sector; 0.47 for H2Global donors
+        self.ATTR["BETA_UNLEVERED"] = kwargs.get("BETA_UNLEVERED", 1.058) #1.058 - Lin et al. (2024): "Market-based asset valuation of hydrogen geological storage", DOI: 10.1016/j.ijhydene.2023.07.074 
         self.ATTR["ENDOGENOUS_PROJECT_RISK"] = kwargs.get("ENDOGENOUS_PROJECT_RISK", False)
                     
         # Indication of risks
