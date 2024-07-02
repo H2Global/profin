@@ -240,12 +240,12 @@ class Project(Indicators, Risks):
         # Indication of risks
         self.RANDOM_DRAWS = kwargs.get("RANDOM_DRAWS", 2000)
         self.RISK_PARAM = RISK_PARAM
-        #add historical analysis of MSCI World to risk parameters
+        '''#add historical analysis of MSCI World to risk parameters
         self.RISK_PARAM["MSCI"] = {
             "distribution" : "normal",
             "scale" : MSCI_ACWI_annual_returns.std(),
             "correlation" : {}
-            }
+            }'''
         
         #check if all risks are correctly named.
         check_risk_names = all(item in list(self.ATTR) for item in list(self.RISK_PARAM))
@@ -313,7 +313,7 @@ class Project(Indicators, Risks):
             else:
                 raise ValueError("Unknown input format provided for attribute:", attr, ". Allowed formats are -int-, -float-, and numpy arrays.")
                 
-        #Check the definition of RISK_PARAM for correlation to MSCI
+        '''#Check the definition of RISK_PARAM for correlation to MSCI
         for check_risk in list(self.RISK_PARAM):
             if check_risk == "MSCI":
                 continue
@@ -321,7 +321,7 @@ class Project(Indicators, Risks):
                 MSCI_corr_temp = self.RISK_PARAM[check_risk]["correlation"]["MSCI"]
                 self.RISK_PARAM["MSCI"]["correlation"][check_risk] = MSCI_corr_temp 
             else:
-                raise AttributeError("The risk", check_risk, "must be defined with a correlation to the MSCI (World).")
+                raise AttributeError("The risk", check_risk, "must be defined with a correlation to the MSCI (World).")'''
         
         #convert correlation-matrix into covariance-matrix
         #cov(x,y) = corr(x,y) * std(x) * std(y)
@@ -354,4 +354,4 @@ class Project(Indicators, Risks):
                     self.ATTR[risk][t] = TIMESTEP_RISKS_IND
                     
         else:
-            raise Warning("No risks have been defined.")
+            print("No risks have been defined.")
