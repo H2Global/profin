@@ -8,14 +8,15 @@ Created on Fri Mar 22 09:41:20 2024
 import numpy as np
 import matplotlib.pyplot as plt
 import profin as pp
-import terminal_data as tm
+from terminal_config import Terminal
+import terminal_model as tm
 import Country_Risk
 
 #%% INPUT PARAMETERS
 
-INFRASTRUCTURE = "Terminal" # Pipeline, "Terminal", Storage
+INFRASTRUCTURE = "Terminal" # "Pipeline", "Terminal", "Storage"
 Terminal_Type = "LOHC" #NH3, LH2, SNG, LOHC
-Conversion_Terminal = True
+Conversion_Terminal = False
 SUBSIDY_DICT = {}
 CASHFLOW_DICT = {}
 
@@ -89,52 +90,63 @@ for t_scale in [1, 2, 4]:
         #Assuming ~37 tank turn per year (a ship load every 6 days and a capacity factor of 1.64) --> Derived from LNG-Brunsbüttel & Stade
         #____Brunsbüttel: Tank volume - 330.000 m³, Capacity - 10 Billion m³/year
         #____Stade: Tank volume (LNG) - 480.000 m³, Capacity (Natural gas, with lower density) - 13.3 Billion m³/year
-        terminal = tm.Core(energycarrier, energysupply)
+        
+        if energycarrier != "LOHC":
+            terminal_ella = tm.Core(energycarrier, energysupply)
+        terminal_data = Terminal(energycarrier, energysupply)
+        
+        #COST CALCULATIONS
+        if energycarrier == "LOHC":
+            #USE H2Global model for CAPEX/OPEX calculation
+            CAPEX_Terminal_no_conversion = terminal_data.get_capex_terminal()
+            OPEX_Terminal_no_conversion = terminal_data.get_opex_terminal()
+            CAPEX_conversion = terminal_data.get_capex_conversion()
+            OPEX_conversion = terminal_data.get_opex_conversion()
+            
+            CAPEX_with_conversion = CAPEX_Terminal_no_conversion + CAPEX_conversion
+            OPEX_with_conversion = OPEX_Terminal_no_conversion + OPEX_conversion
+            
+            tank_size = terminal_data.calculate_tank_volume()
+            print("Terminal tank size:", round(tank_size, 2), " m³")
+        else:
+            #USE Ella Tintemanns model for CAPEX/OPEX calculation
+            CAPEX_with_conversion = terminal_ella.get_capex_terminal()
+            OPEX_with_conversion = terminal_ella.get_opex_terminal()
+            
+            if energycarrier == "SNG":
+                CAPEX_conversion = terminal_ella.reformer_.get_capex()
+                OPEX_conversion = terminal_ella.reformer_.get_e_costs() + terminal_ella.reformer_.get_co2_shipping_costs()
+            elif energycarrier == "NH3":
+                CAPEX_conversion = terminal_ella.cracker_.get_capex()
+                OPEX_conversion = terminal_ella.cracker_.get_e_costs() 
+            elif energycarrier == "LH2":
+                CAPEX_conversion = 0
+                OPEX_conversion = 0
+            else:
+                raise AttributeError("No such carrier defined.")
+             
+            tank_size = terminal_ella.tank_.volume
+            print("Terminal tank size:", round(tank_size, 2), " m³")
+        
         
         if Conversion_Terminal:
-            if energycarrier == "LOHC":
-                raise AttributeError("LOHC Terminal not yet defined.")
-            else:
-                CAPEX_temp = terminal.get_capex_terminal()
-                print("Terminal CAPEX:", round(CAPEX_temp*1e-6, 2), " Million €")
-                OPEX_temp = terminal.get_opex_terminal()
-                print("Terminal OPEX:", round(OPEX_temp*1e-6, 2), " Million €")
-                
-                tank_size = terminal.tank_.volume
-                print("Terminal tank size:", round(tank_size, 2), " m³")
+            CAPEX_temp = CAPEX_with_conversion
+            OPEX_temp = OPEX_with_conversion
+            print("Terminal CAPEX:", round(CAPEX_temp*1e-6, 2), " Million €")
+            print("Terminal OPEX:", round(OPEX_temp*1e-6, 2), " Million €")
         else:
-            if energycarrier == "LOHC":
-                raise AttributeError("LOHC Terminal not yet defined.")
-            else:
-                CAPEX_with_conversion = terminal.get_capex_terminal()
-                OPEX_with_conversion = terminal.get_opex_terminal()
-                
-                if energycarrier == "SNG":
-                    CAPEX_conversion = terminal.reformer_.get_capex()
-                    OPEX_conversion = terminal.reformer_.get_e_costs() + terminal.reformer_.get_co2_shipping_costs()
-                elif energycarrier == "NH3":
-                    CAPEX_conversion = terminal.cracker_.get_capex()
-                    OPEX_conversion = terminal.cracker_.get_e_costs() 
-                elif energycarrier == "LH2":
-                    CAPEX_conversion = 0
-                    OPEX_conversion = 0
-                else:
-                    raise AttributeError("No such carrier defined.")
-                
-                CAPEX_temp = CAPEX_with_conversion - CAPEX_conversion
-                OPEX_temp = OPEX_with_conversion - OPEX_conversion
-                print("Terminal CAPEX without conversion:", round(CAPEX_temp*1e-6, 2), " Million €")
-                print("Terminal OPEX without conversion:", round(OPEX_temp*1e-6, 2), " Million €")
-                
-                tank_size = terminal.tank_.volume
-                print("Terminal tank size:", round(tank_size, 2), " m³")
+            CAPEX_temp = CAPEX_with_conversion - CAPEX_conversion
+            OPEX_temp = OPEX_with_conversion - OPEX_conversion
+            print("Terminal CAPEX without conversion:", round(CAPEX_temp*1e-6, 2), " Million €")
+            print("Terminal OPEX without conversion:", round(OPEX_temp*1e-6, 2), " Million €")
+
         
         #CAPEX and OPEX
         K_INVEST = np.zeros(shape=DEPRECIATION_PERIOD)
-        K_INVEST[0] = CAPEX_temp + CAPEX_conv
+        K_INVEST[0] = CAPEX_temp
 
         #____Operational Costs
-        OPEX = OPEX_temp + OPEX_conv
+        OPEX = OPEX_temp
 
         #UTILIZATION
         #____Max. storage capacity: Tank volume * maximum tank turns per year

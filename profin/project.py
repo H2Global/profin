@@ -205,7 +205,7 @@ class Project(Indicators, Risks):
         #get data of S&P500
         SP500_data = yf.download("^GSPC", start=START_DATE, end=END_DATE)
         SP500_daily_returns = SP500_data['Adj Close'].pct_change()
-        SP500_annual_returns = SP500_daily_returns.resample('YE').sum()[1:-1]
+        SP500_annual_returns = SP500_daily_returns.resample('Y').sum()[1:-1]
         #get data of MSCI ACWI
         MSCI_ACWI_data = yf.download("ACWI", start=START_DATE, end=END_DATE)
         MSCI_first_data_point = date(2008, 3, 28)
@@ -213,7 +213,7 @@ class Project(Indicators, Risks):
         if ten_years_ago_date < MSCI_first_data_point:
             raise ValueError("Not enough data to observe the chosen point in history. Decrease parameter -OBSERVE_PAST-")
         MSCI_ACWI_daily_returns = MSCI_ACWI_data['Adj Close'].pct_change()
-        MSCI_ACWI_annual_returns = MSCI_ACWI_daily_returns.resample('YE').sum()[1:-1]
+        MSCI_ACWI_annual_returns = MSCI_ACWI_daily_returns.resample('Y').sum()[1:-1]
         self.ATTR["MSCI"] = MSCI_ACWI_annual_returns.mean()
         
         # Risk free rate, e.g. national government bonds
