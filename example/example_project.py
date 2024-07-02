@@ -74,9 +74,10 @@ p_example = pp.Project(
     COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM,  #Damodaran CRP for Kenya: 9.86%
     INTEREST=INTEREST,
     CORPORATE_TAX_RATE=CORPORATE_TAX_RATE,  #Damodaran for Kenya: 30%
-    RISK_PARAM=RISK_PARAM,  # Set = {} for not considering risk
+    RISK_PARAM={},  # Set = {} for not considering risk
     OBSERVE_PAST=0,  # if set to 0, the 10-year observation window starts from today
-    DEPRECIATION_PERIOD=DEPRECIATION_PERIOD
+    DEPRECIATION_PERIOD=DEPRECIATION_PERIOD,
+    #BETA_UNLEVERED=1.05
 )
 
 #%%CALCULATION OF FINANCIAL METRICS

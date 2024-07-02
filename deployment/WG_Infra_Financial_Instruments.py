@@ -8,7 +8,7 @@ Created on Fri Mar 22 09:41:20 2024
 import numpy as np
 import matplotlib.pyplot as plt
 import profin as pp
-import terminal_model as tm
+import terminal_data as tm
 import Country_Risk
 
 #%% INPUT PARAMETERS
@@ -83,7 +83,7 @@ for t_scale in [1, 2, 4]:
         #Terminal type: NH3, LH2, SNG
         energycarrier = Terminal_Type
         #Yearly energy import in TWh
-        energysupply = 60  # TWh/year
+        energysupply = 5  # TWh/year
         #Assuming ~37 tank turn per year (a ship load every 6 days and a capacity factor of 1.64) --> Derived from LNG-Brunsbüttel & Stade
         #____Brunsbüttel: Tank volume - 330.000 m³, Capacity - 10 Billion m³/year
         #____Stade: Tank volume (LNG) - 480.000 m³, Capacity (Natural gas, with lower density) - 13.3 Billion m³/year
@@ -94,15 +94,20 @@ for t_scale in [1, 2, 4]:
         OPEX_temp = terminal.get_opex_terminal()
         print("Terminal OPEX:", round(OPEX_temp * 1e-6, 2), " Million €")
 
+        CAPEX_conv = terminal.get_capex_conversion()
+        print("Terminal CAPEX:", round(CAPEX_conv * 1e-6, 2), " Million €")
+        OPEX_conv = terminal.get_opex_conversion()
+        print("Terminal OPEX:", round(OPEX_conv * 1e-6, 2), " Million €")
+
         tank_size = terminal.tank_.volume
         print("Terminal tank size:", round(tank_size, 2), " m³")
 
         #CAPEX and OPEX
         K_INVEST = np.zeros(shape=DEPRECIATION_PERIOD)
-        K_INVEST[0] = CAPEX_temp
+        K_INVEST[0] = CAPEX_temp + CAPEX_conv
 
         #____Operational Costs
-        OPEX = OPEX_temp
+        OPEX = OPEX_temp + OPEX_conv
 
         #UTILIZATION
         #____Max. storage capacity: Tank volume * maximum tank turns per year
