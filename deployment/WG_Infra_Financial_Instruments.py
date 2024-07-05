@@ -15,20 +15,22 @@ import pandas as pd
 
 #%% INPUT PARAMETERS
 
-INFRASTRUCTURE = "Terminal" # "Pipeline", "Terminal", "Storage"
+#Iterate the following scenario parameters manually
+INFRASTRUCTURE = "Pipeline" # "Pipeline", "Terminal", "Storage"
 Terminal_Type = "LOHC" #NH3, LH2, SNG, LOHC
 Conversion_Terminal = True
-Utilization = "Low" # "Ramp-up", "Low"
-ENDOGENOUS_PROJECT_RISK = True
+Storage_Type = "Multi-turn" #Single-turn
+
+#Initialize storage dicts
 SUBSIDY_DICT = {}
 CASHFLOW_DICT = {}
 STORE_RESULTS = True
-FILE_PATH = "C:\\Users\\JulianReul.AzureAD\\H2Global\\Outreach - General\\Working Groups\\01_WG Infrastructure\\05_Report\\Simulation_Results.xlsx"
+FILE_PATH = "C:\\Users\\JulianReul.AzureAD\\H2Global\Outreach - General\\Working Groups\\01_WG Infrastructure\\05_Report\\Simulation_Results.xlsx"
 DICT_RESULTS = {}
 
 for t_scale in [1, 2, 4]:
     DICT_RESULTS["t_scale_" + str(t_scale)] = {}
-    for Utilization in ["Low"]: #, "Ramp-up"
+    for Utilization in ["Low", "Ramp-up"]: #, "Ramp-up"
         DICT_RESULTS["t_scale_" + str(t_scale)][Utilization] = {}
         for ENDOGENOUS_PROJECT_RISK in [True, False]:
             DICT_RESULTS["t_scale_" + str(t_scale)][Utilization][str(ENDOGENOUS_PROJECT_RISK)] = {}
@@ -179,17 +181,33 @@ for t_scale in [1, 2, 4]:
                 K_E_out = TARIFF  #€/kWh-stored for a maximum duration of ~9 days (=40 tank turns)
         
             elif INFRASTRUCTURE == "Storage":
-        
+                
+                #DOI: doi.org/10.1016/j.ijhydene.2023.07.074
+                
+                if Storage_Type == "Single-turn":
+                    max_tank_turns = 1  #Seasonal storage
+                    specific_investment_costs = 450 #€/MWh for depleted gas fields/aquifers
+                    capacity = 145 #GWh working gas
+                    CAPEX = capacity*1e+3 * specific_investment_costs
+                    
+                elif Storage_Type == "Multi-turn":
+                    max_tank_turns = 3.5  #Seasonal storage
+                    specific_investment_costs = 900 #€/MWh for salt cavern project
+                    capacity = 25 #GWh working gas
+                    CAPEX = capacity*1e+3 * specific_investment_costs
+                
+                else:
+                    raise AttributeError("Unknown storage type")
+                
                 #CAPEX and OPEX
                 #REFERENCE: Gas Infrastructure Europe, 04.2024, Why European Underground Hydrogen Storage Needs Should Be Fulfilled
                 K_INVEST = np.zeros(shape=DEPRECIATION_PERIOD)
-                K_INVEST[0] = 0.45 * 1e+9
-                OPEX = 18 * 1e+6
-                max_tank_turns = 10  #Seasonal storage
+                K_INVEST[0] = CAPEX
+                OPEX = CAPEX*0.04
         
                 #UTILIZATION
                 #____Max. storage capacity
-                E_max = (500 * max_tank_turns) * 1e+6  #in kWh
+                E_max = (capacity * max_tank_turns) * 1e+6  #in kWh
                 E_in = E_max * utilization_curve  #kWh hydrogen throughput
                 #____Electricity price USD/kWh = No costs.
                 K_E_in = 0
@@ -229,26 +247,38 @@ for t_scale in [1, 2, 4]:
             RISK_PARAM = {
                 "K_INVEST": {
                     "distribution": "normal",
-                    "scale": K_INVEST * 0.2,
+                    "scale": K_INVEST * 0.1,
                     "limit": {
                         "min": K_INVEST * 0.5,
-                        "max": K_INVEST * 5
+                        "max": K_INVEST * 3
                     },
                     "correlation": {
-                        "MSCI": 0.5,
-                        "E_out": 0.5
+                        "E_out" : 0.5,
+                        "OPEX" : 0.5
+                    }
+                },
+                "OPEX" : {
+                    "distribution": "normal",
+                    "scale": OPEX * 0.2,
+                    "limit": {
+                        "min": OPEX * 0.5,
+                        "max": OPEX * 3
+                    },
+                    "correlation": {
+                        "K_INVEST" : 0.5,
+                        "E_out" : 0.5
                     }
                 },
                 "E_out": {
                     "distribution": "normal",
-                    "scale": E_out * 0.2,
+                    "scale": E_out * 0.1,
                     "limit": {
                         "min": E_out * 0.5,
                         "max": E_out_max_array
                     },
                     "correlation": {
-                        "MSCI": 0.5,
-                        "K_INVEST": 0.5
+                        "K_INVEST" : 0.5,
+                        "OPEX" : 0.5
                     }
                 }
             }
@@ -418,6 +448,8 @@ if STORE_RESULTS:
     # File path to the existing Excel file
     if INFRASTRUCTURE == "Terminal":
         sheet_name = INFRASTRUCTURE + "_"  + Terminal_Type + "_" + str(Conversion_Terminal) + "_" + Utilization
+    elif INFRASTRUCTURE == "Storage":
+        sheet_name = INFRASTRUCTURE + "_"  + Storage_Type + "_" + Utilization
     else:
         sheet_name = INFRASTRUCTURE + "_"  + Utilization
     
@@ -430,7 +462,8 @@ if STORE_RESULTS:
             for e in list(DICT_RESULTS["t_scale_" + str(t_scale)][Utilization]):
                 index_df.append(s + "_" + u + "_" + e)
     
-    columns_df = list(DICT_RESULTS["t_scale_" + str(1)])
+    
+    columns_df = list(DICT_RESULTS["t_scale_" + str(1)][Utilization][str(ENDOGENOUS_PROJECT_RISK)])
     
     RESULTS_DF = pd.DataFrame(
         columns=columns_df,
@@ -445,9 +478,9 @@ if STORE_RESULTS:
                 row = s + "_" + u + "_" + e
                 for col in RESULTS_DF.columns:
                     RESULTS_DF.loc[row, col] = DICT_RESULTS[s][u][e][col]
-    
+       
     # Write the new data to the Excel file, overwriting the existing data
-    with pd.ExcelWriter(FILE_PATH, engine='openpyxl', mode='w') as writer:
+    with pd.ExcelWriter(FILE_PATH, engine='openpyxl', mode='a') as writer:
         RESULTS_DF.to_excel(writer, sheet_name=sheet_name, index=True)
 
 #%% Print out cashflow analysis

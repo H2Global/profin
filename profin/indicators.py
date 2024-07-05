@@ -142,8 +142,7 @@ class Indicators():
         IRR = so.fsolve(self.get_NPV, x_init)
         
         if IRR.mean() > 0.5:
-            print("IRR Mean: ", IRR.mean())
-            raise Warning("Internal rate of return >50%. Please check your assumptions.")
+            print("IRR >50%: ", IRR.mean())
         
         return IRR        
 
