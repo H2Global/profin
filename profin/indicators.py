@@ -39,7 +39,7 @@ class Indicators():
             print("Project risks are calculated endogenously.")
             #Internal rate of return (NPV == 0) serves as return estimate.
             IRR = self.get_IRR()
-            self.ATTR["SP"] = np.percentile(IRR, 0.5)-np.percentile(IRR, 0.1)
+            self.ATTR["SP"] = IRR.mean()-np.percentile(IRR, 0.01)
             print("Project-specific risk:", round(self.ATTR["SP"]*100, 2), "%")
 
         else:
@@ -202,7 +202,7 @@ class Indicators():
         float
             Value-at-risk: The maximum expected loss with a confidence of 1-PERCENTILE.
         """
-        VaR = np.percentile(IRR, 0.5)-np.percentile(IRR, 0.1)
+        VaR = IRR.mean()-np.percentile(IRR, 0.01)
         
         return VaR
     

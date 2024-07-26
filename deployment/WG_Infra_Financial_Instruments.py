@@ -16,8 +16,8 @@ import pandas as pd
 #%% INPUT PARAMETERS
 
 #Iterate the following scenario parameters manually
-INFRASTRUCTURE = "Pipeline" # "Pipeline", "Terminal", "Storage"
-Terminal_Type = "LOHC" #NH3, LH2, SNG, LOHC
+INFRASTRUCTURE = "Terminal" # "Pipeline", "Terminal", "Storage"
+Terminal_Type = "NH3" #NH3, LH2, SNG, LOHC
 Conversion_Terminal = True
 Storage_Type = "Multi-turn" #Single-turn
 
@@ -28,11 +28,11 @@ STORE_RESULTS = True
 FILE_PATH = "C:\\Users\\JulianReul.AzureAD\\H2Global\Outreach - General\\Working Groups\\01_WG Infrastructure\\05_Report\\Simulation_Results.xlsx"
 DICT_RESULTS = {}
 
-for t_scale in [1, 2, 4]:
+for t_scale in [1, 2, 4]: #
     DICT_RESULTS["t_scale_" + str(t_scale)] = {}
-    for Utilization in ["Low", "Ramp-up"]: #, "Ramp-up"
+    for Utilization in ["Low", "Ramp-up"]: #, "Ramp-up", 
         DICT_RESULTS["t_scale_" + str(t_scale)][Utilization] = {}
-        for ENDOGENOUS_PROJECT_RISK in [True, False]:
+        for ENDOGENOUS_PROJECT_RISK in [False, True]: #
             DICT_RESULTS["t_scale_" + str(t_scale)][Utilization][str(ENDOGENOUS_PROJECT_RISK)] = {}
             
             SUBSIDY_DICT["t_scale_" + str(t_scale)] = {}
@@ -50,14 +50,9 @@ for t_scale in [1, 2, 4]:
         
             #____Start of operations
             START_YEAR = 2030
-            #____Depreciation period (Target year: ca. 2055, in line with the German proposal for "Armortisationskonten")
-            DEPRECIATION_PERIOD = 30
-            #____Averaged technical lifetime of plant components
-            TECHNICAL_LIFETIME = 30
-        
-            #____Terminal value at the end of life
-            TERMINAL_VALUE = 0
-        
+            #____Depreciation period (Target year: ca. 2050, in line with the German proposal for "Armortisationskonten")
+            DEPRECIATION_PERIOD = 25
+            
             #____Linear increase of capacity bookings
             #references for utilization:
             #____RMI (2024): "Oceans of opportunity", annex
@@ -75,12 +70,20 @@ for t_scale in [1, 2, 4]:
         
             if INFRASTRUCTURE == "Pipeline":
         
+                #____Averaged technical lifetime of plant components
+                TECHNICAL_LIFETIME = 25
+        
                 #CAPEX and OPEX
                 K_INVEST = np.zeros(shape=DEPRECIATION_PERIOD)
                 #Initial investment costs for 1500 km of pipeline - chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://ehb.eu/files/downloads/EHB-2023-20-Nov-FINAL-design.pdf
                 K_INVEST[0] = 4.488 * 1e+9 + 1.280 * 1e+9  #48"-Pipeline (60% new, 40% repurposed) + 2 x 160 MW compressor
                 #Potential second-stage investment --> Discuss this option during on-site event!
                 #K_INVEST[10] = 3.2*1e+9 + 320*1e+6 #36"-Pipeline (100% new) + 1 x 80 MW compressor    
+        
+                #____Terminal value at the end of life
+                SHARE_REST_VALUE = 1 - DEPRECIATION_PERIOD / TECHNICAL_LIFETIME
+                TERMINAL_VALUE = K_INVEST[0] * SHARE_REST_VALUE   
+
         
                 #O&M costs, including labour costs - https://ehb.eu/page/estimated-investment-cost
                 OPEX = 67 * 1e+6
@@ -100,6 +103,9 @@ for t_scale in [1, 2, 4]:
         
             elif INFRASTRUCTURE == "Terminal":
         
+                #____Averaged technical lifetime of plant components
+                TECHNICAL_LIFETIME = 25
+                
                 #COST VALIDATION WITH MODEL FROM Tintemann (2023)
                 #Terminal type: NH3, LH2, SNG
                 energycarrier = Terminal_Type
@@ -166,6 +172,10 @@ for t_scale in [1, 2, 4]:
                 #____Operational Costs
                 OPEX = OPEX_temp
         
+                #____Terminal value at the end of life
+                SHARE_REST_VALUE = 1 - DEPRECIATION_PERIOD / TECHNICAL_LIFETIME
+                TERMINAL_VALUE = K_INVEST[0] * SHARE_REST_VALUE   
+        
                 #UTILIZATION
                 #____Max. storage capacity: Tank volume * maximum tank turns per year
                 #REVENUE MODEL: Selling a maximum amount of feed-in energy, 
@@ -181,6 +191,9 @@ for t_scale in [1, 2, 4]:
                 K_E_out = TARIFF  #€/kWh-stored for a maximum duration of ~9 days (=40 tank turns)
         
             elif INFRASTRUCTURE == "Storage":
+                
+                #____Averaged technical lifetime of plant components
+                TECHNICAL_LIFETIME = 50
                 
                 #DOI: doi.org/10.1016/j.ijhydene.2023.07.074
                 
@@ -205,6 +218,10 @@ for t_scale in [1, 2, 4]:
                 K_INVEST[0] = CAPEX
                 OPEX = CAPEX*0.04
         
+                #____Terminal value at the end of life
+                SHARE_REST_VALUE = 1 - DEPRECIATION_PERIOD / TECHNICAL_LIFETIME
+                TERMINAL_VALUE = K_INVEST[0] * SHARE_REST_VALUE   
+        
                 #UTILIZATION
                 #____Max. storage capacity
                 E_max = (capacity * max_tank_turns) * 1e+6  #in kWh
@@ -225,7 +242,7 @@ for t_scale in [1, 2, 4]:
             #____Country risk (see Damodaran)
             #COUNTRY_RISK_PREMIUM=0 # Europe
             #____Interest
-            INTEREST = 0.04 #can be derived from return on corporate bonds (e.g. BBB-rated bonds)
+            INTEREST = 0.05 #Long-term SWAP-rate (=3%) + 2% credit margin
             #____Tax rate
             #CORPORATE_TAX_RATE=0.2
         
@@ -249,8 +266,8 @@ for t_scale in [1, 2, 4]:
                     "distribution": "normal",
                     "scale": K_INVEST * 0.1,
                     "limit": {
-                        "min": K_INVEST * 0.5,
-                        "max": K_INVEST * 3
+                        "min": K_INVEST / 100,
+                        "max": K_INVEST * 100
                     },
                     "correlation": {
                         "E_out" : 0.5,
@@ -261,8 +278,8 @@ for t_scale in [1, 2, 4]:
                     "distribution": "normal",
                     "scale": OPEX * 0.2,
                     "limit": {
-                        "min": OPEX * 0.5,
-                        "max": OPEX * 3
+                        "min": OPEX / 100,
+                        "max": OPEX * 100
                     },
                     "correlation": {
                         "K_INVEST" : 0.5,
@@ -273,7 +290,7 @@ for t_scale in [1, 2, 4]:
                     "distribution": "normal",
                     "scale": E_out * 0.1,
                     "limit": {
-                        "min": E_out * 0.5,
+                        "min": E_out / 100,
                         "max": E_out_max_array
                     },
                     "correlation": {
@@ -340,6 +357,8 @@ for t_scale in [1, 2, 4]:
                 SUBSIDY_DICT["t_scale_" + str(t_scale)]["CFD"] = 0
                 
             else:
+                raise Warning("Include the influence of lower uncertainty for future cashflows when implementing funding!")
+                
                 # Calculate subsidy demand for each instrument
                 #CAPEX Funding
                 subsidy_CAPEX = p_example.get_subsidy(npv_target=0, depreciation_target=DEPRECIATION_PERIOD,
@@ -371,7 +390,7 @@ for t_scale in [1, 2, 4]:
                 subsidy_ANNUALLY_CONSTANT_ARRAY[:] = subsidy_ANNUALLY_CONSTANT.mean()
                 SUBSIDY_DICT["t_scale_" + str(t_scale)]["Anchor_A"] = subsidy_ANNUALLY_CONSTANT_ARRAY
                 SUBSIDY_DICT["t_scale_" + str(t_scale)]["Anchor_B"] = ANCHOR_CAPACITY_BOOKING[0].mean(axis=1)
-        
+                
                 print("ANCHOR_CAPACITY")
                 #print("_____Mean annually constant funding (offtake-agreement like subsidy):", round(subsidy_ANNUALLY_CONSTANT.mean()*1e-6, 1), " Million €")
                 print("_____ACB-A:", round(subsidy_ANNUALLY_CONSTANT.mean() * DEPRECIATION_PERIOD * 1e-6, 1), " Million €")
@@ -411,7 +430,7 @@ for t_scale in [1, 2, 4]:
                             CORPORATE_TAX_RATE=CORPORATE_TAX_RATE,
                             RISK_PARAM=RISK_PARAM,
                             OBSERVE_PAST=0,
-                            ENDOGENOUS_PROJECT_RISK=False,
+                            ENDOGENOUS_PROJECT_RISK=ENDOGENOUS_PROJECT_RISK,
                             REPAYMENT_PERIOD=DEPRECIATION_PERIOD,
                             R_FREE=R_FREE,
                             ERP_MATURE=ERP_MATURE,
