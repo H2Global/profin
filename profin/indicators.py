@@ -18,7 +18,7 @@ class Indicators():
     def __init__(self):
         pass
 
-    def get_WACC(self):
+    def get_WACC(self, **kwargs):
         """
         This method calculates the weighted average cost of capital,
         including country-specific risk premiums.
@@ -39,7 +39,14 @@ class Indicators():
             print("Project risks are calculated endogenously.")
             #Internal rate of return (NPV == 0) serves as return estimate.
             IRR = self.get_IRR()
-            self.ATTR["SP"] = IRR.mean()-np.percentile(IRR, 0.01)
+
+            if "IRR_REF" in kwargs:
+                IRR_REF = kwargs.get("IRR_REF", False)
+                IRR_DELTA = IRR_REF.mean()-np.percentile(IRR, 0.01)
+            else:
+                IRR_DELTA = IRR.mean()-np.percentile(IRR, 0.01)
+                
+            self.ATTR["SP"] = IRR_DELTA
             print("Project-specific risk:", round(self.ATTR["SP"]*100, 2), "%")
 
         else:

@@ -111,4 +111,3 @@ class Terminal:
             return self.OPEX_Conversion
         else:
             raise AttributeError("Method not yet defined for this -energycarrier-")
-
