@@ -11,3 +11,4 @@ profin.egg-info/SOURCES.txt
 profin.egg-info/dependency_links.txt
 profin.egg-info/not-zip-safe
 profin.egg-info/top_level.txt
+test/test_model.py

@@ -7,19 +7,19 @@ Created on Fri Mar 22 09:41:20 2024
 
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 import profin as pp
 from terminal_config import Terminal
 import terminal_model as tm
-import Country_Risk
 import pandas as pd
 
 #%% INPUT PARAMETERS
 
 #Iterate the following scenario parameters manually
-INFRASTRUCTURE = "Pipeline" # "Pipeline", "Terminal", "Storage", "Conversion"
-Terminal_Type = "NH3" #NH3, LH2, SNG, LOHC
-Storage_Type = "Multi-turn" #Single-turn
+INFRASTRUCTURE = "Terminal" # "Pipeline", "Terminal", "Storage", "Conversion"
+Terminal_Type = "LH2" #NH3, LH2, SNG, LOHC
+Storage_Type = "Single-turn" #Single-turn
+#____Country risk (see Damodaran)
+COUNTRY_RISK_PREMIUM=0 # Europe
 
 #Initialize storage dicts
 SUBSIDY_DICT = {}
@@ -28,6 +28,7 @@ STORE_RESULTS = True
 FILE_PATH = "C:\\Users\\JulianReul.AzureAD\\H2Global\Outreach - General\\Working Groups\\01_WG Infrastructure\\05_Report\\Simulation_Results.xlsx"
 DICT_RESULTS = {}
 
+print("INFRASTRUCTURE: ", INFRASTRUCTURE)
 
 for t_scale in [1, 2, 4]: #1, 2, 4
     DICT_RESULTS["t_scale_" + str(t_scale)] = {}
@@ -36,7 +37,14 @@ for t_scale in [1, 2, 4]: #1, 2, 4
 
     start_time = time.time()
 
-    for Utilization in ["Low", "Ramp-up"]: #, "Ramp-up", "Low", 
+    print("__________________________")
+    print("__________________________")
+    print("SCALE OF FUNDING TARIFF: ", t_scale)
+    print("__________________________")
+    print("__________________________")
+
+
+    for Utilization in ["Ramp-up"]: #, "Ramp-up", "Low", 
     
         DICT_RESULTS["t_scale_" + str(t_scale)][Utilization] = {}
         SUBSIDY_DICT["t_scale_" + str(t_scale)][Utilization] = {}
@@ -46,12 +54,6 @@ for t_scale in [1, 2, 4]: #1, 2, 4
         SUBSIDY_DICT["t_scale_" + str(t_scale)][Utilization] = {}
         CASHFLOW_DICT["t_scale_" + str(t_scale)][Utilization] = {}
                 
-        print("__________________________")
-        print("__________________________")
-        print("SCALE OF FUNDING TARIFF: ", t_scale)
-        print("__________________________")
-        print("__________________________")
-    
         #GENERAL PROJECT DATA
         #____Tariff: Same tariff for all infrastructures
         TARIFF = 0.00525 * t_scale  #€/kWh-transported or -stored (=0.175 €/kg H2, which is ~5% of future price of green H2, assuming 3.5 €/kg H2)
@@ -300,25 +302,22 @@ for t_scale in [1, 2, 4]: #1, 2, 4
         #FINANCIAL METRICS
         #____Equity: Reference: RMI (2024): "Oceans of opportunity", annex
         EQUITY_SHARE = 0.3
-        #____Country risk (see Damodaran)
-        #COUNTRY_RISK_PREMIUM=0 # Europe
         #____Interest
         INTEREST = 0.05 #Long-term SWAP-rate (=3%) + 2% credit margin
         #____Tax rate
-        #CORPORATE_TAX_RATE=0.2
+        CORPORATE_TAX_RATE=0.2
     
         #DEFINE NO RISK PARAMETERS
         E_out_max_array = np.zeros(shape=DEPRECIATION_PERIOD)
         E_out_max_array[:] = E_max
     
-        country = "INFRASTRUCTURE"
+        #country = "INFRASTRUCTURE"
         # "Morocco", "Kenya", "Chile", "Italy", "Spain", "Australia", "Austria", "France", "Japan", "South Africa", "INFRASTRUCTURE"
-    
-        country_risk = Country_Risk.country_parameters[country]
+        #country_risk = Country_Risk.country_parameters[country]
     
         # Definisci le variabili con i valori specifici del paese
-        COUNTRY_RISK_PREMIUM = country_risk["COUNTRY_RISK_PREMIUM"]
-        CORPORATE_TAX_RATE = country_risk["CORPORATE_TAX_RATE"]
+        COUNTRY_RISK_PREMIUM = COUNTRY_RISK_PREMIUM
+        CORPORATE_TAX_RATE = CORPORATE_TAX_RATE
         R_FREE = 0.045  # This one was the one used in the Infrastructure
         ERP_MATURE = 0.065  # This one was the one used in the Infrastructure
     
@@ -349,7 +348,7 @@ for t_scale in [1, 2, 4]: #1, 2, 4
             },
             "E_out": {
                 "distribution": "normal",
-                "scale": E_out * 0.1,
+                "scale": E_out * 0.2,
                 "limit": {
                     "min": E_out / 100,
                     "max": E_out_max_array
@@ -371,7 +370,7 @@ for t_scale in [1, 2, 4]: #1, 2, 4
             K_E_out=K_E_out,
             K_INVEST=K_INVEST,
             TERMINAL_VALUE=TERMINAL_VALUE,
-            TECHNICAL_LIFETIME=TECHNICAL_LIFETIME,
+            DEPRECIATION_PERIOD=DEPRECIATION_PERIOD,
             OPEX=OPEX,
             EQUITY_SHARE=EQUITY_SHARE,
             COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM,
@@ -380,9 +379,9 @@ for t_scale in [1, 2, 4]: #1, 2, 4
             RISK_PARAM=RISK_PARAM,
             OBSERVE_PAST=0,
             ENDOGENOUS_PROJECT_RISK=True,
-            REPAYMENT_PERIOD=DEPRECIATION_PERIOD,
             R_FREE=R_FREE,
             ERP_MATURE=ERP_MATURE,
+            TECHNICAL_LIFETIME=TECHNICAL_LIFETIME
         )
     
         #CALCULATION OF FINANCIAL METRICS
@@ -410,12 +409,14 @@ for t_scale in [1, 2, 4]: #1, 2, 4
     
     
         DICT_RESULTS["t_scale_" + str(t_scale)][Utilization] = {
+            "CAPEX" : K_INVEST[0],
             "WACC": WACC,
             "NPV": NPV.mean(),
             "LCOE": LCOE.mean(),
             "IRR": IRR.mean(),
+            "IRR_MINUS_WACC" : IRR.mean() - WACC,
             "VaR": VaR,
-            "Tariff": TARIFF,
+            "Tariff": TARIFF
             }
     
         
@@ -428,15 +429,17 @@ for t_scale in [1, 2, 4]: #1, 2, 4
         else:
             for s in ["CAPEX", "ACB", "FP", "CFD"]:
                 
+                print("Subsidy:", s)
+                
                 RISK_PARAM_SUBSIDY = RISK_PARAM.copy()
                 
                 if s == "CAPEX":
-                    #Assume 10% of CAPEX as subsidy
-                    subsidy = K_INVEST*0.1
+                    #Assume 20% of CAPEX as subsidy
+                    subsidy = K_INVEST*0.4
                     RISK_PARAM_SUBSIDY["K_INVEST"]["scale"] = (K_INVEST-subsidy)*0.1
                 elif s == "ACB":
                     #Assume 10% of CAPEX as subsidy, distributed over the depr. period
-                    annual_funding = (K_INVEST[0]*0.1)/DEPRECIATION_PERIOD
+                    annual_funding = (K_INVEST[0]*0.4)/DEPRECIATION_PERIOD
                     subsidy = np.linspace(annual_funding,annual_funding,DEPRECIATION_PERIOD)
                 elif s == "FP":
                     #Assume 1% of the LCOH as constant FP over depr. period
@@ -460,7 +463,7 @@ for t_scale in [1, 2, 4]: #1, 2, 4
                     K_E_out=K_E_out,
                     K_INVEST=K_INVEST,
                     TERMINAL_VALUE=TERMINAL_VALUE,
-                    TECHNICAL_LIFETIME=TECHNICAL_LIFETIME,
+                    DEPRECIATION_PERIOD=DEPRECIATION_PERIOD,
                     OPEX=OPEX,
                     EQUITY_SHARE=EQUITY_SHARE,
                     COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM,
@@ -469,7 +472,7 @@ for t_scale in [1, 2, 4]: #1, 2, 4
                     RISK_PARAM=RISK_PARAM_SUBSIDY,
                     OBSERVE_PAST=0,
                     ENDOGENOUS_PROJECT_RISK=True,
-                    REPAYMENT_PERIOD=DEPRECIATION_PERIOD,
+                    TECHNICAL_LIFETIME=TECHNICAL_LIFETIME,
                     R_FREE=R_FREE,
                     ERP_MATURE=ERP_MATURE,
                     SUBSIDY=subsidy
@@ -493,19 +496,33 @@ for t_scale in [1, 2, 4]: #1, 2, 4
                     print("____IRR_SUBSIDY:", IRR_SUBSIDY.mean())        
                 except:
                     print("____IRR cannot be determined. - Probably too low.")
-                                
-                efficiency_IRR = (IRR_SUBSIDY-IRR).mean()*100 / subsidy.sum()*1e-9
-                efficiency_WACC = (WACC_SUBSIDY-WACC)*100 / subsidy.sum()*1e-9
+                
+                #Discount subsidy:
+                subsidy_total = subsidy.sum()
+                subsidy_discounted = []
+                inflation = 0.03 #long-term SWAP rate
+                for t in range(len(subsidy)):
+                    annual_sub_discounted = subsidy[t]/(1+inflation)**t
+                    subsidy_discounted.append(annual_sub_discounted)
+                
+                subsidy_discounted_array = np.array(subsidy_discounted)
+                subsidy_discounted_total = subsidy_discounted_array.sum()
+                
+                #UNIT: DELTA per € Billion
+                efficiency_IRR = (IRR_SUBSIDY-IRR).mean() / (subsidy_discounted_array.sum()*1e-9)
+                efficiency_WACC = (WACC_SUBSIDY-WACC) / (subsidy_discounted_array.sum()*1e-9)
                 
                 # Calculate subsidy demand for each instrument
                 SUBSIDY_DICT["t_scale_" + str(t_scale)][Utilization][s] = {
-                    "subsidy" : subsidy,
+                    "subsidy" : subsidy_total,
+                    "subsidy_dicounted" : subsidy_discounted_total,
                     "efficiency_IRR" : efficiency_IRR,
                     "efficiency_WACC" : efficiency_WACC,
                     "WACC_SUBSIDY" : WACC_SUBSIDY,
-                    "NPV_SUBSIDY" : NPV_SUBSIDY,
-                    "LCOE_SUBSIDY" : LCOE_SUBSIDY,
-                    "IRR_SUBSIDY" : IRR_SUBSIDY
+                    "NPV_SUBSIDY" : NPV_SUBSIDY.mean(),
+                    "LCOE_SUBSIDY" : LCOE_SUBSIDY.mean(),
+                    "IRR_SUBSIDY" : IRR_SUBSIDY.mean(),
+                    "IRR_MINUS_WACC_SUBSIDY" : IRR_SUBSIDY.mean() - WACC_SUBSIDY
                     }
             
     
@@ -519,13 +536,13 @@ for t_scale in [1, 2, 4]: #1, 2, 4
 if STORE_RESULTS:
     # File path to the existing Excel file
     if INFRASTRUCTURE == "Terminal":
-        sheet_name = INFRASTRUCTURE + "_"  + Terminal_Type + "_" + Utilization
+        sheet_name = INFRASTRUCTURE + "_"  + Terminal_Type
     elif INFRASTRUCTURE == "Conversion":
-        sheet_name = INFRASTRUCTURE + "_"  + Terminal_Type + "_" + Utilization
+        sheet_name = INFRASTRUCTURE + "_"  + Terminal_Type
     elif INFRASTRUCTURE == "Storage":
-        sheet_name = INFRASTRUCTURE + "_"  + Storage_Type + "_" + Utilization
+        sheet_name = INFRASTRUCTURE + "_"  + Storage_Type
     else:
-        sheet_name = INFRASTRUCTURE + "_"  + Utilization
+        sheet_name = INFRASTRUCTURE
     
     index_df = []
     #iterate over the SCALE of the tariff
@@ -561,156 +578,12 @@ if STORE_RESULTS:
                 #No subsidies are calculated for "Low" utilization scenarios.
                 continue
             else:
-                for col_s in columns_SUB:
-                    RESULTS_DF.loc[row, col_s] = DICT_RESULTS[s][u][col_s]
+                for sub in ["CAPEX", "ACB", "FP", "CFD"]:
+                    columns_SUB_ind = list(SUBSIDY_DICT[s][u][sub])
+                    for col_s in columns_SUB_ind:
+                        col_s_write = sub + "_" + col_s
+                        RESULTS_DF.loc[row, col_s_write] = SUBSIDY_DICT[s][u][sub][col_s]
        
     # Write the new data to the Excel file, overwriting the existing data
     with pd.ExcelWriter(FILE_PATH, engine='openpyxl', mode='a') as writer:
         RESULTS_DF.to_excel(writer, sheet_name=sheet_name, index=True)
-
-#%% Print out cashflow analysis
-for t_scale in [1, 2, 4]:
-    if len(list(CASHFLOW_DICT["t_scale_" + str(t_scale)])) == 0:
-        continue
-    print("TARIFF_SCENARIO: ", str(t_scale))
-    CASHFLOW_NEG_NO_SUBSIDY = CASHFLOW_DICT["t_scale_" + str(t_scale)]["NO_SUBSIDY"].copy()
-    CASHFLOW_NEG_NO_SUBSIDY[CASHFLOW_NEG_NO_SUBSIDY > 0] = 0
-    CASHFLOW_NEG_NO_SUBSIDY_SUM = CASHFLOW_NEG_NO_SUBSIDY.sum()
-    for s in list(CASHFLOW_DICT["t_scale_" + str(t_scale)]):
-        print("____SUBSIDY: ", s)
-        print("________RATIO NEGATIVE CASHFLOW:")
-        CASHFLOW_NEG = CASHFLOW_DICT["t_scale_" + str(t_scale)][s].copy()
-        CASHFLOW_NEG[CASHFLOW_NEG > 0] = 0
-        CASHFLOW_NEG_SUM = CASHFLOW_NEG.sum()
-        RATIO_NEG_CASHFLOW = CASHFLOW_NEG_SUM / CASHFLOW_NEG_NO_SUBSIDY_SUM
-        print("        ", round(RATIO_NEG_CASHFLOW * 100, 0), "%")
-
-#%% Visualize annual non-discounted cashflows   
-LIFETIME_TEMP = TECHNICAL_LIFETIME
-years = np.arange(START_YEAR, LIFETIME_TEMP + START_YEAR)
-OCF, OCF_std, NOCF, NOCF_std = p_example.get_cashflows(WACC)
-
-#CASHFLOW BALANCE
-CF = OCF + NOCF
-CF_STD = OCF_std + NOCF_std
-
-fig_0, ax_0 = plt.subplots()
-
-ax_0.plot(years, OCF, marker='o', label="Operating Cashflow", color="Green")
-ax_0.fill_between(years, OCF - OCF_std, OCF + OCF_std, color='Green', alpha=0.3)
-
-ax_0.plot(years, NOCF, marker='o', label="Non-operating Cashflow", color="Orange")
-ax_0.fill_between(years, NOCF - NOCF_std, NOCF + NOCF_std, color='Orange', alpha=0.3)
-
-ax_0.plot(years, CF, marker='o', label="Summed Cashflow", color="Blue")
-ax_0.fill_between(years, CF - CF_STD, CF + CF_STD, color='Blue', alpha=0.3)
-
-plt.xlabel('Years')
-plt.ylabel('Annual cashflows [US$]')
-#plt.ylim(0,)
-plt.legend(loc="lower right")
-plt.grid(True)
-
-plt.show()
-
-print("____WACC:", round(WACC, 2), "%")
-print("____NPV:", round(NPV.mean() * 1e-6, 2), " USD Million")
-print("____VaR:", round(VaR * 1e-6, 2), " USD Million")
-
-#%% Visualize development of NPV over project lifetime
-
-LIFETIME_TEMP = TECHNICAL_LIFETIME
-WACC_TEMP = WACC
-
-years = np.arange(LIFETIME_TEMP + 1)
-
-#CASHFLOW
-#____discounting cashflows
-CF_discounted = OCF.copy()
-CF_std_discounted = OCF_std.copy()
-for t in range(LIFETIME_TEMP):
-    CF_discounted[t] = OCF[t] / (1 + WACC_TEMP) ** t
-    CF_std_discounted[t] = OCF_std[t] / (1 + WACC_TEMP) ** t
-
-#ANNUAL NPV
-NPV = np.zeros(LIFETIME_TEMP + 1)
-#____initial invest in year "0"
-for t in range(LIFETIME_TEMP):
-    NPV[t] -= K_INVEST[t].mean()
-    #____positive cashflows to equity
-NPV[1:] = CF_discounted
-#____cumulate cashflows
-NPV_cum = NPV.cumsum()
-
-#PLOTTING
-fig, ax = plt.subplots()
-
-line_width = 0.8
-#____derive first plot (initial invest)
-plot_invest = NPV_cum.copy()
-plot_invest[1:] = 0
-ax.bar(years, plot_invest, color='orange', width=line_width, label="Invest")
-
-# Get the x-axis limits
-delta_x = LIFETIME_TEMP + 1
-ax.set_xlim(-0.5, LIFETIME_TEMP + 0.5)
-offset_zero = 0.5 / delta_x
-#offset_years = (delta_x-offset_zero*2)/LIFETIME_TEMP
-
-#____derive second plot (positive cashflows)
-for year_temp in range(1, LIFETIME_TEMP + 1):
-    x_position = year_temp / delta_x
-    ax.axhline(y=NPV_cum[year_temp],
-               color='black',
-               xmin=x_position - (1 / delta_x) * 0.4 + offset_zero,
-               xmax=x_position + (1 / delta_x) * 0.4 + offset_zero,
-               linestyle='-')
-
-#____derive third and fourth plot (terminal values)
-#Accounting for open principal payments.
-REPAYMENT_PERIOD = DEPRECIATION_PERIOD
-INVEST_TEMP = K_INVEST.mean()
-if REPAYMENT_PERIOD > LIFETIME_TEMP:
-    RATIO_OPEN_PRINCIPAL = 1 - (LIFETIME_TEMP / REPAYMENT_PERIOD)
-    OPEN_PRINCIPAL = INVEST_TEMP * (1 - EQUITY_SHARE) * RATIO_OPEN_PRINCIPAL
-else:
-    OPEN_PRINCIPAL = 0
-terminal_value = (TERMINAL_VALUE.mean() - OPEN_PRINCIPAL) / (1 + WACC_TEMP) ** LIFETIME_TEMP
-plot_terminal_value = np.zeros(LIFETIME_TEMP + 1)
-plot_npv = np.zeros(LIFETIME_TEMP + 1)
-
-if NPV_cum[-1] < 0:
-    if terminal_value + NPV_cum[-1] > 0:
-        #plot positive NPV in green
-        plot_npv[-1] = terminal_value + NPV_cum[-1]
-        ax.bar(years, plot_npv, color='green', width=line_width, label="Positive NPV")
-        #plot terminal value add on until NPV=0
-        plot_terminal_value[-1] = -NPV_cum[-1]
-        ax.bar(years, plot_terminal_value, bottom=NPV_cum[-1], color='grey', width=line_width,
-               label="Terminal value-NPV")
-    else:
-        #plot negative NPV in red
-        plot_npv[-1] = -(terminal_value + NPV_cum[-1])
-        ax.bar(years, plot_npv, bottom=NPV_cum[-1] + terminal_value, color='red', width=line_width,
-               label="Negative NPV")
-        #plot terminal value add on until NPV=0
-        plot_terminal_value[-1] = terminal_value
-        ax.bar(years, plot_terminal_value, bottom=NPV_cum[-1], color='grey', width=line_width, label="Terminal value")
-else:
-    #plot terminal value on top of positive NPV in green 
-    plot_npv[-1] = NPV_cum[-1] + terminal_value
-    ax.bar(years, plot_npv, bottom=0, color='green', width=line_width, label="Positive NPV")
-
-ax.set_xlabel('Years')
-ax.set_ylabel('Net present value [US$]')
-#ax.ylim(0, 4*1e8)
-ax.legend(loc="lower right")
-ax.grid(True)
-xtick_position = [1, 6, 11, 16, 21, 26, 31]
-xtick_label = [2030, 2035, 2040, 2045, 2050, 2055, 2060]
-plt.xticks(xtick_position, xtick_label)
-plt.show()
-
-print("____WACC:", round(WACC, 2), "%")
-print("____NPV:", round(NPV.mean() * 1e-6, 2), " USD Million")
-print("____VaR:", round(VaR * 1e-6, 2), " USD Million")
