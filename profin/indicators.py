@@ -18,7 +18,7 @@ class Indicators():
     def __init__(self):
         pass
 
-    def get_WACC(self):
+    def get_WACC(self, **kwargs):
         """
         This method calculates the weighted average cost of capital,
         including country-specific risk premiums.
@@ -39,7 +39,14 @@ class Indicators():
             print("Project risks are calculated endogenously.")
             #Internal rate of return (NPV == 0) serves as return estimate.
             IRR = self.get_IRR()
-            self.ATTR["SP"] = np.percentile(IRR, 0.5)-np.percentile(IRR, 0.1)
+
+            if "IRR_REF" in kwargs:
+                IRR_REF = kwargs.get("IRR_REF", False)
+                IRR_DELTA = IRR_REF.mean()-np.percentile(IRR, 0.01)
+            else:
+                IRR_DELTA = IRR.mean()-np.percentile(IRR, 0.01)
+                
+            self.ATTR["SP"] = IRR_DELTA
             print("Project-specific risk:", round(self.ATTR["SP"]*100, 2), "%")
 
         else:
@@ -96,7 +103,7 @@ class Indicators():
 
         """
         
-        period_to_analyze = kwargs.get("PERIOD", self.ATTR["TECHNICAL_LIFETIME"])
+        period_to_analyze = kwargs.get("PERIOD", self.ATTR["DEPRECIATION_PERIOD"])
         
         #Calculate the matrix for all timesteps and random distributions.
         OPERATING_CASHFLOW = (
@@ -142,8 +149,7 @@ class Indicators():
         IRR = so.fsolve(self.get_NPV, x_init)
         
         if IRR.mean() > 0.5:
-            print("IRR Mean: ", IRR.mean())
-            raise Warning("Internal rate of return >50%. Please check your assumptions.")
+            print("IRR >50%: ", IRR.mean())
         
         return IRR        
 
@@ -173,7 +179,7 @@ class Indicators():
         #Initialize TOTAL_ENERGY with 0.
         TOTAL_ENERGY = 0
                 
-        for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
+        for t in range(self.ATTR["DEPRECIATION_PERIOD"]):
             # Add discounted energy purchase and operating costs
             TOTAL_COSTS += (self.ATTR["K_INVEST"][t] + self.ATTR["K_E_in"][t]*self.ATTR["E_in"][t] + self.ATTR["OPEX"][t]) / (1+WACC)**t
             # Add discounted energy production        
@@ -203,7 +209,7 @@ class Indicators():
         float
             Value-at-risk: The maximum expected loss with a confidence of 1-PERCENTILE.
         """
-        VaR = np.percentile(IRR, 0.5)-np.percentile(IRR, 0.1)
+        VaR = IRR.mean()-np.percentile(IRR, 0.01)
         
         return VaR
     
@@ -255,21 +261,17 @@ class Indicators():
         #____Discount annual operating cashflows
         OPERATING_CASHFLOW_DISCOUNTED = OPERATING_CASHFLOW.copy()
         OPERATING_CASHFLOW_STD_DISCOUNTED = OPERATING_CASHFLOW_STD.copy()
-        for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
+        for t in range(self.ATTR["DEPRECIATION_PERIOD"]):
             OPERATING_CASHFLOW_DISCOUNTED[t] = OPERATING_CASHFLOW[t] / (1+WACC.mean())**t
             OPERATING_CASHFLOW_STD_DISCOUNTED[t] = OPERATING_CASHFLOW_STD_DISCOUNTED[t] / (1+WACC.mean())**t
         
         # NON-OPERATING CASHFLOW
         #____Annual non-operating cashflow (interest, principal, dividends)
-        NON_OPERATING_CASHFLOW = np.zeros(self.ATTR["TECHNICAL_LIFETIME"])
+        NON_OPERATING_CASHFLOW = np.zeros(self.ATTR["DEPRECIATION_PERIOD"])
         #____interest on debt, principal payments and dividends
         K_INVEST_CUMSUM = self.ATTR["K_INVEST"].cumsum(axis=0)
         ANNUAL_INTEREST = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"]*self.ATTR["COST_OF_DEBT"]).T #assuming constant and linear interest payments
         ANNUAL_PRINCIPAL = (K_INVEST_CUMSUM.T*self.ATTR["DEBT_SHARE"] / self.ATTR["DEPRECIATION_PERIOD"]).T #assuming constant and linear principal payments
-        if self.ATTR["DEPRECIATION_PERIOD"] < self.ATTR["TECHNICAL_LIFETIME"]:
-            YEARS_WITHOUT_PRINCIPAL = self.ATTR["TECHNICAL_LIFETIME"] - self.ATTR["DEPRECIATION_PERIOD"]
-            ANNUAL_PRINCIPAL[-YEARS_WITHOUT_PRINCIPAL:] = 0
-            ANNUAL_INTEREST[-YEARS_WITHOUT_PRINCIPAL:] = 0
         
         ANNUAL_DIVIDENDS = (K_INVEST_CUMSUM.T*self.ATTR["EQUITY_SHARE"]*self.ATTR["COST_OF_EQUITY"]).T #assuming constant and linear dividents
         ANNUAL_SUBSIDY = self.ATTR["SUBSIDY"].copy()
@@ -280,7 +282,7 @@ class Indicators():
         # Discount capital payments
         NON_OPERATING_CASHFLOW_DISCOUNTED = NON_OPERATING_CASHFLOW.copy()
         NON_OPERATING_CASHFLOW_STD_DISCOUNTED = NON_OPERATING_CASHFLOW_STD.copy()
-        for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
+        for t in range(self.ATTR["DEPRECIATION_PERIOD"]):
             NON_OPERATING_CASHFLOW_DISCOUNTED[t] = NON_OPERATING_CASHFLOW[t] / (1+WACC.mean())**t
             NON_OPERATING_CASHFLOW_STD_DISCOUNTED[t] = NON_OPERATING_CASHFLOW_STD[t] / (1+WACC.mean())**t        
         

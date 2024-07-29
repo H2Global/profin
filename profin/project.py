@@ -35,7 +35,7 @@ class Project(Indicators, Risks):
                  K_E_out,
                  K_INVEST,
                  TERMINAL_VALUE,
-                 TECHNICAL_LIFETIME,
+                 DEPRECIATION_PERIOD,
                  OPEX,
                  EQUITY_SHARE,
                  COUNTRY_RISK_PREMIUM,
@@ -158,12 +158,12 @@ class Project(Indicators, Risks):
         self.ATTR["K_INVEST"] = K_INVEST
         # The "TERMINAL_VALUE" of the project is the value of the project after depreciation over the LIFETIME.
         self.ATTR["TERMINAL_VALUE"] = TERMINAL_VALUE
-        # Expected lifetime of the project [a] - This can also be a sub-period of the project.
-        self.ATTR["TECHNICAL_LIFETIME"] = TECHNICAL_LIFETIME
         # Average repayment period of all debts [a] - Can differ from LIFETIME, but defaults to LIFETIME.
-        self.ATTR["DEPRECIATION_PERIOD"] = kwargs.get("DEPRECIATION_PERIOD", TECHNICAL_LIFETIME) #change everywhere and life time to technical lifetime
+        self.ATTR["DEPRECIATION_PERIOD"] =  DEPRECIATION_PERIOD
+        # Expected lifetime of the installed technology [a] - This can also be a sub-period of the project.
+        self.ATTR["TECHNICAL_LIFETIME"] = kwargs.get("TECHNICAL_LIFETIME", DEPRECIATION_PERIOD) 
         # Yearly capital expenditure [US$/year]
-        self.ATTR["CAPEX"] = K_INVEST / TECHNICAL_LIFETIME
+        self.ATTR["CAPEX"] = K_INVEST / self.ATTR["DEPRECIATION_PERIOD"]
         # Yearly operational expenses, excluding energy inflow costs [US$/year]
         self.ATTR["OPEX"] = OPEX
         # Subsidy in an annual resolution.
@@ -205,7 +205,7 @@ class Project(Indicators, Risks):
         #get data of S&P500
         SP500_data = yf.download("^GSPC", start=START_DATE, end=END_DATE)
         SP500_daily_returns = SP500_data['Adj Close'].pct_change()
-        SP500_annual_returns = SP500_daily_returns.resample('YE').sum()[1:-1]
+        SP500_annual_returns = SP500_daily_returns.resample('Y').sum()[1:-1]
         #get data of MSCI ACWI
         MSCI_ACWI_data = yf.download("ACWI", start=START_DATE, end=END_DATE)
         MSCI_first_data_point = date(2008, 3, 28)
@@ -213,7 +213,7 @@ class Project(Indicators, Risks):
         if ten_years_ago_date < MSCI_first_data_point:
             raise ValueError("Not enough data to observe the chosen point in history. Decrease parameter -OBSERVE_PAST-")
         MSCI_ACWI_daily_returns = MSCI_ACWI_data['Adj Close'].pct_change()
-        MSCI_ACWI_annual_returns = MSCI_ACWI_daily_returns.resample('YE').sum()[1:-1]
+        MSCI_ACWI_annual_returns = MSCI_ACWI_daily_returns.resample('Y').sum()[1:-1]
         self.ATTR["MSCI"] = MSCI_ACWI_annual_returns.mean()
         
         # Risk free rate, e.g. national government bonds
@@ -234,7 +234,7 @@ class Project(Indicators, Risks):
             self.ATTR["ERP_MATURE"] = np.float64(ERP_MATURE_EXT)
             
         # Derived from balance sheets and income statements of H2Global donors
-        self.ATTR["BETA_UNLEVERED"] = kwargs.get("BETA_UNLEVERED", 0.54) #0.54 for damodaran green & renewables sector; 0.47 for H2Global donors
+        self.ATTR["BETA_UNLEVERED"] = kwargs.get("BETA_UNLEVERED", 1.058) #1.058 - Lin et al. (2024): "Market-based asset valuation of hydrogen geological storage", DOI: 10.1016/j.ijhydene.2023.07.074 
         self.ATTR["ENDOGENOUS_PROJECT_RISK"] = kwargs.get("ENDOGENOUS_PROJECT_RISK", False)
                     
         # Indication of risks
@@ -255,11 +255,11 @@ class Project(Indicators, Risks):
         #Iterate over all attributes and expand them to full random spectrum, 
         #if they are given as arrays over the LIFETIME or defined as risks.
         for a, attr in enumerate(self.ATTR):
-            random_shape = np.zeros(shape=(TECHNICAL_LIFETIME,self.RANDOM_DRAWS))
+            random_shape = np.zeros(shape=(DEPRECIATION_PERIOD,self.RANDOM_DRAWS))
             if isinstance(self.ATTR[attr], int) or isinstance(self.ATTR[attr], float):
                 if attr in list(self.RISK_PARAM): #attribute is defined as a risk
-                    if attr == "TECHNICAL_LIFETIME":
-                        raise ValueError("Attribute LIFETIME cannot be randomized.")
+                    if attr == "DEPRECIATION_PERIOD":
+                        raise ValueError("Attribute DEPRECIATION_PERIOD cannot be randomized.")
                     elif attr == "K_INVEST":
                         #K_INVEST is not an annually constant value. It's a one-time value (initial investment).
                         constant_mean = self.ATTR[attr] #this is a float value
@@ -300,16 +300,16 @@ class Project(Indicators, Risks):
                         self.ATTR[attr] = random_shape
                         #keep the value as an int or float.
             elif isinstance(self.ATTR[attr], np.ndarray): #attribute is given as a numpy array.
-                if attr == "TECHNICAL_LIFETIME":
-                    raise ValueError("Attribute LIFETIME must be constant.")
+                if attr == "DEPRECIATION_PERIOD":
+                    raise ValueError("Attribute DEPRECIATION_PERIOD must be constant.")
                 #in this case, the mean value changes over the lifetime.
-                #____check, if enough values are given (#of values == LIFETIME)
-                if len(self.ATTR[attr]) == self.ATTR["TECHNICAL_LIFETIME"]:
+                #____check, if enough values are given (#of values == DEPRECIATION_PERIOD)
+                if len(self.ATTR[attr]) == self.ATTR["DEPRECIATION_PERIOD"]:
                     changing_mean = self.ATTR[attr].copy() #this is an array
                     random_shape[:,:] = changing_mean[:, np.newaxis]
                     self.ATTR[attr] = random_shape
                 else:
-                    raise ValueError("Length of given attribute values must be equal to TECHNICAL_LIFETIME for attribute:", attr)
+                    raise ValueError("Length of given attribute values must be equal to DEPRECIATION_PERIOD for attribute:", attr)
             else:
                 raise ValueError("Unknown input format provided for attribute:", attr, ". Allowed formats are -int-, -float-, and numpy arrays.")
                 
@@ -343,7 +343,7 @@ class Project(Indicators, Risks):
         # Calculate risks, if RISK_PARAM is given.
         if len(self.RISK_PARAM):
             #Define risks for each time step (year) in lifetime.
-            for t in range(self.ATTR["TECHNICAL_LIFETIME"]):
+            for t in range(self.ATTR["DEPRECIATION_PERIOD"]):
                 TIMESTEP_RISKS = self.get_risks(t)
                 #iteration of each risk within a time step t.
                 for r, risk in enumerate(self.RISK_PARAM):
