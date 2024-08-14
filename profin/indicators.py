@@ -47,6 +47,7 @@ class Indicators():
                 IRR_DELTA = IRR.mean()-np.percentile(IRR, 0.01)
                 
             self.ATTR["SP"] = IRR_DELTA
+            
             print("Project-specific risk:", round(self.ATTR["SP"]*100, 2), "%")
 
         else:
@@ -62,6 +63,8 @@ class Indicators():
         
         self.ATTR["COST_OF_DEBT"] = (self.ATTR["INTEREST"]+self.ATTR["CRP"]) * (1-self.ATTR["CORPORATE_TAX_RATE"])
         
+        print("Cost of debt:", self.ATTR["COST_OF_DEBT"])
+        print("Cost of equity:", self.ATTR["COST_OF_EQUITY"])
         WACC = self.ATTR["EQUITY_SHARE"] * self.ATTR["COST_OF_EQUITY"] + self.ATTR["DEBT_SHARE"] * self.ATTR["COST_OF_DEBT"]
 
         return WACC

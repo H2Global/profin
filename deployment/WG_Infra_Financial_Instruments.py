@@ -11,24 +11,28 @@ import profin as pp
 from terminal_config import Terminal
 import terminal_model as tm
 import pandas as pd
+import scipy.optimize as so
+
 
 #%% INPUT PARAMETERS
 
 #Iterate the following scenario parameters manually
-INFRASTRUCTURE = "Terminal" # "Pipeline", "Terminal", "Storage", "Conversion"
-Terminal_Type = "LH2" #NH3, LH2, SNG, LOHC
-Storage_Type = "Single-turn" #Single-turn
+INFRASTRUCTURE = "Conversion" # "Pipeline", "Terminal", "Storage", "Conversion"
+Terminal_Type = "LOHC" #NH3, LH2, SNG, LOHC
+Storage_Type = "Multi-turn" #Single-turn
 #____Country risk (see Damodaran)
-COUNTRY_RISK_PREMIUM=0 # Europe
+COUNTRY_RISK_PREMIUM=0.0 # Europe: 0%, Moody's B1-countries: 6.5%, Damodaran
 
 #Initialize storage dicts
 SUBSIDY_DICT = {}
 CASHFLOW_DICT = {}
 STORE_RESULTS = True
-FILE_PATH = "C:\\Users\\JulianReul.AzureAD\\H2Global\Outreach - General\\Working Groups\\01_WG Infrastructure\\05_Report\\Simulation_Results.xlsx"
+FILE_PATH = "C:\\Users\\JulianReul.AzureAD\\H2Global\Outreach - General\\Working Groups\\01_WG Infrastructure\\05_Report\\Simulation_Results_Low_Util.xlsx"
 DICT_RESULTS = {}
 
 print("INFRASTRUCTURE: ", INFRASTRUCTURE)
+print("Terminal_Type: ", Terminal_Type)
+print("Storage_Type: ", Storage_Type)
 
 for t_scale in [1, 2, 4]: #1, 2, 4
     DICT_RESULTS["t_scale_" + str(t_scale)] = {}
@@ -43,8 +47,7 @@ for t_scale in [1, 2, 4]: #1, 2, 4
     print("__________________________")
     print("__________________________")
 
-
-    for Utilization in ["Ramp-up"]: #, "Ramp-up", "Low", 
+    for Utilization in ["Low"]: #, "Ramp-up", "Low", 
     
         DICT_RESULTS["t_scale_" + str(t_scale)][Utilization] = {}
         SUBSIDY_DICT["t_scale_" + str(t_scale)][Utilization] = {}
@@ -257,7 +260,7 @@ for t_scale in [1, 2, 4]: #1, 2, 4
             
             #____Averaged technical lifetime of plant components
             TECHNICAL_LIFETIME = 50
-            
+
             #DOI: doi.org/10.1016/j.ijhydene.2023.07.074
             
             if Storage_Type == "Single-turn":
@@ -281,6 +284,9 @@ for t_scale in [1, 2, 4]: #1, 2, 4
             K_INVEST[0] = CAPEX
             OPEX = CAPEX*0.04
     
+            print("CAPEX: ", CAPEX)
+            print("OPEX: ", OPEX)
+
             #____Terminal value at the end of life
             SHARE_REST_VALUE = 1 - DEPRECIATION_PERIOD / TECHNICAL_LIFETIME
             TERMINAL_VALUE = K_INVEST[0] * SHARE_REST_VALUE   
@@ -383,7 +389,7 @@ for t_scale in [1, 2, 4]: #1, 2, 4
             ERP_MATURE=ERP_MATURE,
             TECHNICAL_LIFETIME=TECHNICAL_LIFETIME
         )
-    
+
         #CALCULATION OF FINANCIAL METRICS
     
         # Calculate WACC for further calculations.
@@ -434,22 +440,29 @@ for t_scale in [1, 2, 4]: #1, 2, 4
                 RISK_PARAM_SUBSIDY = RISK_PARAM.copy()
                 
                 if s == "CAPEX":
-                    #Assume 20% of CAPEX as subsidy
+                    #Assume 40% of CAPEX as subsidy
                     subsidy = K_INVEST*0.4
                     RISK_PARAM_SUBSIDY["K_INVEST"]["scale"] = (K_INVEST-subsidy)*0.1
+                    
                 elif s == "ACB":
                     #Assume 10% of CAPEX as subsidy, distributed over the depr. period
                     annual_funding = (K_INVEST[0]*0.4)/DEPRECIATION_PERIOD
                     subsidy = np.linspace(annual_funding,annual_funding,DEPRECIATION_PERIOD)
+                    
                 elif s == "FP":
-                    #Assume 1% of the LCOH as constant FP over depr. period
-                    FP = 0.00105 #€/kWh
-                    subsidy = E_out*FP
+                    total_funding = K_INVEST[0]*0.4
+                    def get_FP(FP, subsidy, E_out):
+                        return subsidy-(E_out*FP).sum()
+                    x_init = 0.001
+                    FP = so.fsolve(get_FP, x_init, args=(total_funding,E_out))
+                    subsidy = FP*E_out
+                    
                 elif s == "CFD":
                     subsidy = p_example.get_subsidy(0, DEPRECIATION_PERIOD, "CFD", WACC)
                     RISK_PARAM_SUBSIDY["K_INVEST"]["scale"] = 0
                     RISK_PARAM_SUBSIDY["OPEX"]["scale"] = 0
                     RISK_PARAM_SUBSIDY["E_out"]["scale"] = 0
+                    
                 else:
                     raise AttributeError("No such subsidy scheme implemented.")
                             
@@ -556,12 +569,13 @@ if STORE_RESULTS:
     columns_SUB = []
     columns_df = columns_DICT.copy()
     
-    for sub in ["CAPEX", "ACB", "FP", "CFD"]:
-        list_temp = list(SUBSIDY_DICT["t_scale_" + str(t_scale)][Utilization][sub])
-        new_cols = [sub + "_" + l for l in list_temp]
-        columns_df += new_cols
-        columns_SUB += new_cols
-    
+    if Utilization == "Ramp-up":
+        for sub in ["CAPEX", "ACB", "FP", "CFD"]:
+            list_temp = list(SUBSIDY_DICT["t_scale_" + str(t_scale)][Utilization][sub])
+            new_cols = [sub + "_" + l for l in list_temp]
+            columns_df += new_cols
+            columns_SUB += new_cols
+        
     RESULTS_DF = pd.DataFrame(
         columns=columns_df,
         index=index_df
@@ -587,3 +601,95 @@ if STORE_RESULTS:
     # Write the new data to the Excel file, overwriting the existing data
     with pd.ExcelWriter(FILE_PATH, engine='openpyxl', mode='a') as writer:
         RESULTS_DF.to_excel(writer, sheet_name=sheet_name, index=True)
+        
+#%% Visualize development of NPV aver project lifetime
+from matplotlib import pyplot as plt
+    
+LIFETIME_TEMP = TECHNICAL_LIFETIME
+WACC_TEMP = WACC
+
+years = np.arange(DEPRECIATION_PERIOD+1)
+
+operating_cashflow, operating_cashflow_std, non_operating_cashflow, non_operating_cashflow_std = p_example.get_cashflows(WACC)
+
+#CASHFLOW
+OCF = operating_cashflow
+OCF_std = operating_cashflow_std
+#____discounting cashflows
+CF_discounted = OCF.copy()
+CF_std_discounted = OCF_std.copy()
+for t in range(DEPRECIATION_PERIOD):
+    CF_discounted[t] = OCF[t] / (1+WACC_TEMP)**t
+    CF_std_discounted[t] = OCF_std[t] / (1+WACC_TEMP)**t
+
+#ANNUAL NPV
+NPV = np.zeros(DEPRECIATION_PERIOD+1)
+#____initial invest in year "0"
+NPV[0] -= K_INVEST[0].mean()
+#____positive cashflows to equity
+NPV[1:] = CF_discounted
+#____cumulate cashflows
+NPV_cum = NPV.cumsum()
+
+#PLOTTING
+fig, ax = plt.subplots()
+    
+line_width = 0.8
+#____derive first plot (initial invest)
+plot_invest = NPV_cum.copy()
+plot_invest[1:] = 0
+ax.bar(years, plot_invest, color='orange', width=line_width, label="Invest")
+
+# Get the x-axis limits
+delta_x = DEPRECIATION_PERIOD+1
+ax.set_xlim(-0.5, DEPRECIATION_PERIOD+0.5)
+offset_zero = 0.5 / delta_x
+
+#____derive second plot (positive cashflows)
+for year_temp in range(1, DEPRECIATION_PERIOD+1):
+    x_position = year_temp/delta_x
+    ax.axhline(y=NPV_cum[year_temp], 
+                color='black', 
+                xmin=x_position - (1/delta_x)*0.4 + offset_zero, 
+                xmax=x_position + (1/delta_x)*0.4 + offset_zero, 
+                linestyle='-')
+
+#____derive third and fourth plot (terminal values)
+#Accounting for open principal payments.
+REPAYMENT_PERIOD = DEPRECIATION_PERIOD
+INVEST_TEMP = K_INVEST[0]
+OPEN_PRINCIPAL = 0
+terminal_value = TERMINAL_VALUE / (1+WACC_TEMP)**DEPRECIATION_PERIOD
+plot_terminal_value = np.zeros(DEPRECIATION_PERIOD+1)
+plot_npv = np.zeros(DEPRECIATION_PERIOD+1)
+
+if NPV_cum[-1] < 0:
+    if terminal_value+NPV_cum[-1] > 0:
+        #plot positive NPV in green
+        plot_npv[-1] = terminal_value+NPV_cum[-1]
+        ax.bar(years, plot_npv, color='green', width=line_width, label="Positive NPV")
+        #plot terminal value add on until NPV=0
+        plot_terminal_value[-1] = -NPV_cum[-1]
+        ax.bar(years, plot_terminal_value, bottom=NPV_cum[-1], color='grey', width=line_width, label="Terminal value-NPV")
+    else:
+        #plot negative NPV in red
+        plot_npv[-1] = -(terminal_value+NPV_cum[-1])
+        ax.bar(years, plot_npv, bottom=NPV_cum[-1]+terminal_value, color='red', width=line_width, label="Negative NPV")
+        #plot terminal value add on until NPV=0
+        plot_terminal_value[-1] = terminal_value
+        ax.bar(years, plot_terminal_value, bottom=NPV_cum[-1], color='grey', width=line_width, label="Terminal value")
+else:
+    #plot terminal value on top of positive NPV in green 
+    plot_npv[-1] = NPV_cum[-1]+terminal_value
+    ax.bar(years, plot_npv, bottom=0, color='green', width=line_width, label="Positive NPV")
+    
+ax.set_xlabel('Years')
+ax.set_ylabel('Net present value [US$]')
+#ax.ylim(0, 4*1e8)
+ax.set_title(s)
+ax.legend(loc="lower right")
+ax.grid(True)
+xtick_position = [1, 6, 11, 16, 21, 26, 31]
+xtick_label = [2030, 2035, 2040, 2045, 2050, 2055, 2060]
+plt.xticks(xtick_position, xtick_label)
+plt.show()

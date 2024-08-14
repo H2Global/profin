@@ -45,7 +45,8 @@ def get_financial_data():
     
     return ERP_MATURE, RISK_FREE_RATE
 
-def get_WACC(DEBT_SHARE, EQUITY_SHARE, CORPORATE_TAX_RATE, BETA_UNLEVERED, INTEREST, R_FREE, ERP_MATURE, CRP):
+
+def get_WACC(DEBT_SHARE, EQUITY_SHARE, CORPORATE_TAX_RATE, BETA_UNLEVERED, INTEREST, R_FREE, ERP_MATURE, CRP, SP):
     """
     This methods calculates the weighted average cost of capital,
     including country-specific risk premiums.
@@ -55,9 +56,7 @@ def get_WACC(DEBT_SHARE, EQUITY_SHARE, CORPORATE_TAX_RATE, BETA_UNLEVERED, INTER
     WACC : np.array
 
     """
-    
-    ERP_MATURE
-    
+        
     CRP_EXPOSURE=1
     Debt_to_Equity = DEBT_SHARE / (1-DEBT_SHARE)
     LEVER = 1+((1-CORPORATE_TAX_RATE)*Debt_to_Equity)
@@ -66,7 +65,8 @@ def get_WACC(DEBT_SHARE, EQUITY_SHARE, CORPORATE_TAX_RATE, BETA_UNLEVERED, INTER
     COST_OF_EQUITY = (
         R_FREE + 
         BETA * ERP_MATURE + 
-        CRP * CRP_EXPOSURE
+        CRP * CRP_EXPOSURE +
+        SP
         )
     
     COST_OF_DEBT = INTEREST * (1-CORPORATE_TAX_RATE)
@@ -77,18 +77,31 @@ def get_WACC(DEBT_SHARE, EQUITY_SHARE, CORPORATE_TAX_RATE, BETA_UNLEVERED, INTER
 
 #%%WACC Analysis
 
-DEBT_SHARE = 0.6
+DEBT_SHARE = 0.6 #Stakeholder discussions
 EQUITY_SHARE = 1-DEBT_SHARE
-CORPORATE_TAX_RATE = 0.2
-BETA_UNLEVERED = 0.54
-INTEREST = 0.04
-CRP = 0.0951
+CORPORATE_TAX_RATE = 0.3 #Damodaran 01/2024
+BETA_UNLEVERED = 1.058 #Lin et al. (2024)
+INTEREST = 0.05 #3% long-term swap-rate + 2% credit margin
+CRP = 0.0951 #Damodaran 01/2024
+ERP_MATURE = 0.065 #Risk-premium of mature market
+RISK_FREE_RATE = 0.045 #10y US Government bonds
+SP=0
 
-ERP_MATURE, RISK_FREE_RATE = get_financial_data()
-print("ERP_MATURE:", ERP_MATURE)
-print("RISK_FREE_RATE:", RISK_FREE_RATE)
+#ERP_MATURE, RISK_FREE_RATE = get_financial_data()
+#print("ERP_MATURE:", ERP_MATURE)
+#print("RISK_FREE_RATE:", RISK_FREE_RATE)
 
-WACC, COST_OF_EQUITY, COST_OF_DEBT = get_WACC(DEBT_SHARE, EQUITY_SHARE, CORPORATE_TAX_RATE, BETA_UNLEVERED, INTEREST, RISK_FREE_RATE, ERP_MATURE, CRP)
+WACC, COST_OF_EQUITY, COST_OF_DEBT = get_WACC(
+    DEBT_SHARE, 
+    EQUITY_SHARE, 
+    CORPORATE_TAX_RATE, 
+    BETA_UNLEVERED, 
+    INTEREST, 
+    RISK_FREE_RATE, 
+    ERP_MATURE, 
+    CRP, 
+    SP
+    )
 print("WACC:", WACC)
 print("COST_OF_EQUITY:", COST_OF_EQUITY)
 print("COST_OF_DEBT:", COST_OF_DEBT)

@@ -198,37 +198,36 @@ class Project(Indicators, Risks):
         END_DATE = yesterday_date.strftime("%Y-%m-%d")
         ten_years_ago_date = ten_years_ago.date()
         START_DATE = ten_years_ago_date.strftime("%Y-%m-%d")
-        
-        #Retrieve historical data of S&P500, MSCI ACWI and 10y US GOV.-BONDS
-        #get treasury data - 10 year US Gov. Bonds
-        treasury_data = yf.download("^TNX", start=START_DATE, end=END_DATE)
-        #get data of S&P500
-        SP500_data = yf.download("^GSPC", start=START_DATE, end=END_DATE)
-        SP500_daily_returns = SP500_data['Adj Close'].pct_change()
-        SP500_annual_returns = SP500_daily_returns.resample('Y').sum()[1:-1]
-        #get data of MSCI ACWI
-        MSCI_ACWI_data = yf.download("ACWI", start=START_DATE, end=END_DATE)
-        MSCI_first_data_point = date(2008, 3, 28)
-        #Check, whether historical data exists.
-        if ten_years_ago_date < MSCI_first_data_point:
-            raise ValueError("Not enough data to observe the chosen point in history. Decrease parameter -OBSERVE_PAST-")
-        MSCI_ACWI_daily_returns = MSCI_ACWI_data['Adj Close'].pct_change()
-        MSCI_ACWI_annual_returns = MSCI_ACWI_daily_returns.resample('Y').sum()[1:-1]
-        self.ATTR["MSCI"] = MSCI_ACWI_annual_returns.mean()
-        
+                
         # Risk free rate, e.g. national government bonds
         RISK_FREE_RATE_EXT = kwargs.get("R_FREE", -1)
         if RISK_FREE_RATE_EXT == -1:
             #No risk free rate externally defined.
+            #get treasury data - 10 year US Gov. Bonds
+            treasury_data = yf.download("^TNX", start=START_DATE, end=END_DATE)
             RISK_FREE_RATE = treasury_data['Adj Close'].iloc[-1] / 100
         else:
             #Risk free rate externally defined.
             RISK_FREE_RATE = RISK_FREE_RATE_EXT
         self.ATTR["R_FREE"] = RISK_FREE_RATE
-        # Equity risk premium of mature market (US-market)
-        CORR_SP500_MSCIW = np.corrcoef(SP500_daily_returns[1:], MSCI_ACWI_daily_returns[1:])[0,1]
         ERP_MATURE_EXT = kwargs.get("ERP_MATURE", -1)
         if ERP_MATURE_EXT == -1:
+            #get data of S&P500
+            SP500_data = yf.download("^GSPC", start=START_DATE, end=END_DATE)
+            SP500_daily_returns = SP500_data['Adj Close'].pct_change()
+            SP500_annual_returns = SP500_daily_returns.resample('Y').sum()[1:-1]
+            
+            #get data of MSCI ACWI
+            MSCI_ACWI_data = yf.download("ACWI", start=START_DATE, end=END_DATE)
+            MSCI_first_data_point = date(2008, 3, 28)
+            #Check, whether historical data exists.
+            if ten_years_ago_date < MSCI_first_data_point:
+                raise ValueError("Not enough data to observe the chosen point in history. Decrease parameter -OBSERVE_PAST-")
+            MSCI_ACWI_daily_returns = MSCI_ACWI_data['Adj Close'].pct_change()
+            
+            # Equity risk premium of mature market (US-market)
+            CORR_SP500_MSCIW = np.corrcoef(SP500_daily_returns[1:], MSCI_ACWI_daily_returns[1:])[0,1]
+
             self.ATTR["ERP_MATURE"] = (SP500_annual_returns.mean() - RISK_FREE_RATE) / CORR_SP500_MSCIW
         else:
             self.ATTR["ERP_MATURE"] = np.float64(ERP_MATURE_EXT)
@@ -240,12 +239,6 @@ class Project(Indicators, Risks):
         # Indication of risks
         self.RANDOM_DRAWS = kwargs.get("RANDOM_DRAWS", 2000)
         self.RISK_PARAM = RISK_PARAM
-        '''#add historical analysis of MSCI World to risk parameters
-        self.RISK_PARAM["MSCI"] = {
-            "distribution" : "normal",
-            "scale" : MSCI_ACWI_annual_returns.std(),
-            "correlation" : {}
-            }'''
         
         #check if all risks are correctly named.
         check_risk_names = all(item in list(self.ATTR) for item in list(self.RISK_PARAM))
@@ -279,7 +272,7 @@ class Project(Indicators, Risks):
                     if attr in ["INTEREST", "TECHNICAL_LIFETIME", "DEPRECIATION_PERIOD",
                                 "EQUITY_SHARE", "CRP", "CRP_EXPOSURE", 
                                 "CORPORATE_TAX_RATE", "DEBT_SHARE", "R_FREE",
-                                "MSCI", "ERP_MATURE", "BETA_UNLEVERED", "ENDOGENOUS_PROJECT_RISK",
+                                "ERP_MATURE", "BETA_UNLEVERED", "ENDOGENOUS_PROJECT_RISK",
                                 ]:
                         #exclude some attributes from conversion to matrix form.
                         continue
@@ -312,17 +305,7 @@ class Project(Indicators, Risks):
                     raise ValueError("Length of given attribute values must be equal to DEPRECIATION_PERIOD for attribute:", attr)
             else:
                 raise ValueError("Unknown input format provided for attribute:", attr, ". Allowed formats are -int-, -float-, and numpy arrays.")
-                
-        '''#Check the definition of RISK_PARAM for correlation to MSCI
-        for check_risk in list(self.RISK_PARAM):
-            if check_risk == "MSCI":
-                continue
-            elif "MSCI" in list(self.RISK_PARAM[check_risk]["correlation"]):
-                MSCI_corr_temp = self.RISK_PARAM[check_risk]["correlation"]["MSCI"]
-                self.RISK_PARAM["MSCI"]["correlation"][check_risk] = MSCI_corr_temp 
-            else:
-                raise AttributeError("The risk", check_risk, "must be defined with a correlation to the MSCI (World).")'''
-        
+                        
         #convert correlation-matrix into covariance-matrix
         #cov(x,y) = corr(x,y) * std(x) * std(y)
         #____Initialize matrix
