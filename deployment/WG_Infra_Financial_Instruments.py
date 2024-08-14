@@ -27,7 +27,7 @@ COUNTRY_RISK_PREMIUM=0.0 # Europe: 0%, Moody's B1-countries: 6.5%, Damodaran
 SUBSIDY_DICT = {}
 CASHFLOW_DICT = {}
 STORE_RESULTS = True
-FILE_PATH = "C:\\Users\\JulianReul.AzureAD\\H2Global\Outreach - General\\Working Groups\\01_WG Infrastructure\\05_Report\\Simulation_Results_Low_Util.xlsx"
+FILE_PATH = "C:\\Users\\JulianReul.AzureAD\\H2Global\Outreach - General\\Working Groups\\01_WG Infrastructure\\05_Report\\Simulation_Results.xlsx"
 DICT_RESULTS = {}
 
 print("INFRASTRUCTURE: ", INFRASTRUCTURE)
