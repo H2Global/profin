@@ -1,18 +1,8 @@
 # profin - A Python Package for <u>Pro</u>ject <u>Fin</u>ance
 
-This repository holds a Python package named profin, 
-which can be used to conduct financial analysis
-of energy projects.
-
-profin has been developed as an open-source tool by 
-[H2 Global Foundation](https://www.h2-global.de/) 
-in the [BMBF](https://www.bmbf.de/bmbf/en/home/home_node.html)-funded
-research project “H2Global meets Africa".
- 
+profin is an open source Python package developed by the [H2Global Foundation](https://www.h2-global.de/), which can be used to conduct financial analyses of energy projects. 
 
 Version 1.0 of this package was published on PyPI on 27/02/2024.
-
-<img alt="Alt text" src="H2G_logo.png"/>
 
 ---
 ## Contents
@@ -27,29 +17,26 @@ Version 1.0 of this package was published on PyPI on 27/02/2024.
 ---
 
 ## Model Purpose and General Information
-profin enables discounted cash flow analysis for energy projects.
+profin enables discounted cash flow analyses of energy projects.
 
-### <u>INPUT</u>
+### <u>Input parameter</u>
 - Energy input and output
 - Financial metrics: CAPEX and OPEX, depreciation period, price developments, 
 equity ratio, country risk, interest on debt, subsidies, tax rate
 
-### <u>DCF analysis</u>
-Additional features:
-
-- Monte-Carlo simulation of specific project risks
-- Simulation of funding demand (H2Global, CfD, etc.) to achieve positive net present value
-- API link to  [yahoo-finance](https://finance.yahoo.com) for latest financial data
-
-### <u>OUTPUT</u>
+### <u>Output parameter</u>
 - Weighted Average Cost of Capital (**WACC**)
 - Net Present Value (**NPV**)
 - Internal Rate of Return (**IRR**)
 - Value-at-Risk (**VaR**)
 - Levelized Cost of Energy (**LCOE**)
 - **Sharpe-ratio** (risk measure)
-- **Cashflow** visualization
 - **Funding demand** for NPV=0
+
+### <u>Special features:</u>
+- Monte-Carlo simulation of specific project risks
+- Simulation of funding demand (H2Global, CfD, etc.) to achieve a positive net present value
+- API link to  [yahoo-finance](https://finance.yahoo.com) for latest financial data
 
 ## Installation Instructions
 To set up profin locally, follow these steps:
@@ -60,29 +47,28 @@ To set up profin locally, follow these steps:
 
 2. Open Anaconda Prompt.
 
-3. Create a new environment from reference_environment.yml file (recommended):
+3. Create a new environment from requirements.txt file (recommended):
     ```bash
-   conda env create -f reference_environment.yml
+   conda create --name <env_name> --file requirements.txt
    
 4. Activate the environment with:
     ```bash
-   conda activate env_mode_behave
+   conda activate <env_name>
    
 5. cd to the directory, where you stored the repository and where the setup.py file is located.
 
 6. In this folder run:
     ```bash
-   pip install mode-behave
+   pip install -e .
 
-7. Alternatively, run:
+7. Alternatively, you may install profin directly via PyPI:
     ```bash
-    pip install -e
+    pip install profin
 
 ## Example
 An example project configuration and calculation are provided in
 [example_project](https://github.com/H2Global/profin/blob/master/deployment/example_project.py).  
-This example illustrates the variables that must be defined in a Project-type class. 
-Some variables may require an array, while others may be a single number.
+This example illustrates the variables that may be defined for an exemplary Project-type class. Some variables may be given as integer/float or as arrays, having equal length to the defined DEPRECIATION_PERIOD. If integer/float variables are given, these values are assumed constant over the DEPRECIATION_PERIOD. If arrays are given, profin looks up the values given for each year.
 There are also some variables that are optional; if not defined, they will retain their default values.
 
 ```py
@@ -96,7 +82,7 @@ p_example = pp.Project(
                  K_E_out = [], # Energy output price in $ per kWh  
                  K_INVEST = [], # Investment costs in $  
                  TERMINAL_VALUE = ..., # Liquidation revenues at the end of the period in $  
-                 TECHNICAL_LIFETIME = ..., # Analyzed lifetime of the project in years  
+                 DEPRECIATION_PERIOD= ..., # Analyzed depreciation period of the project in years  
                  OPEX = [], #  Annual costs (not including energy costs) in $ per year  
                  EQUITY_SHARE = ..., # Share of equity investment in %  
                  COUNTRY_RISK_PREMIUM = ..., # Extra return demanded by investors for higher risks in foreign markets  
@@ -106,7 +92,7 @@ p_example = pp.Project(
                  OBSERVE_PAST = ..., # Days back from today to start the 10-year data window   
                  #OPTIONAL:  
                  BETA_UNLEVERED = ..., # Unlevered BETA factor of the project, defaults to 0.54.
-                 DEPRECIATION_PERIOD = ..., # Repayment period for loans and depreciation for equity in years, defaults to project's lifetime  
+                 TECHNICAL_LIFETIME= ..., # Technical lifetime of the project.  
                  SUBSIDY = ..., # Annual subsidy for the project, defaults to 0    
                  ENDOGENOUS_PROJECT_RISK = ..., # Set True to calculate project-specific risk from RISK_PARAM, otherwise False  
                  CRP_EXPOSURE = ..., # Project's exposure to country risk, ranging from 0 to 1, defaults to 1   
@@ -156,5 +142,4 @@ For any other interests (e.g. potential research collaborations),
 please directly contact the project maintainers via email, as indicated and updated on GitHub.
 
 ## License
-profin is licensed under the open source
-[MIT License](https://github.com/H2Global/profin/blob/master/LICENSE.txt)
+profin is licensed under the open source [MIT License](https://github.com/H2Global/profin/blob/master/LICENSE.txt)

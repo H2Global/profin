@@ -12,18 +12,18 @@ import profin as pp
 #%% INPUT PARAMETERS
 
 #PROJECT DATA
-#____Investment costs
-K_INVEST=np.zeros(shape=30)
-K_INVEST[0] = 3e+9 # K_INVEST[0] is the investment at year 1
-K_INVEST[10] = 0 # K_INVEST[t] is an additional investment happening at year t+1
-#____Terminal value at the end of life
-TERMINAL_VALUE=K_INVEST[0]*0
 # ____Depreciation period
 DEPRECIATION_PERIOD=20
+#____Investment costs
+K_INVEST=np.zeros(shape=DEPRECIATION_PERIOD)
+K_INVEST[0] = 3e+9 # K_INVEST[0] is the investment at year 1
+K_INVEST[10] = 0 # K_INVEST[t] is an additional investment happening at year t+1
 #____Averaged technical lifetime of plant components
 TECHNICAL_LIFETIME=30
 #O&M costs, including labour costs
 OPEX=K_INVEST[0]*0.02 #2% of CAPEX
+#____Terminal value at the end of life
+TERMINAL_VALUE=K_INVEST[0]*(1-DEPRECIATION_PERIOD/TECHNICAL_LIFETIME)
 
 
 #ELECTRICITY
@@ -55,9 +55,8 @@ CORPORATE_TAX_RATE=0.2
 RISK_PARAM = {
                 "K_E_out" : {
                     "distribution" : "normal",
-                    "scale" : 0.2*K_E_out, #50% of hydrogen price
+                    "scale" : 0.2*K_E_out, #20% of hydrogen price
                     "correlation" : {
-                        "MSCI" : 0.1,
                         }
                     }
                 }
@@ -72,7 +71,7 @@ p_example = pp.Project(
                  K_E_out=K_E_out,
                  K_INVEST=K_INVEST, #Cesaro et al.
                  TERMINAL_VALUE=TERMINAL_VALUE,
-                 TECHNICAL_LIFETIME=TECHNICAL_LIFETIME,
+                 DEPRECIATION_PERIOD=DEPRECIATION_PERIOD,
                  OPEX=OPEX, #1.5% of CAPEX
                  EQUITY_SHARE=EQUITY_SHARE,
                  COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM, #Damodaran CRP for Kenya: 9.86%
@@ -81,12 +80,12 @@ p_example = pp.Project(
                  RISK_PARAM=RISK_PARAM, # Set = {} for not considering risk
                  OBSERVE_PAST=0, # if set to 0, the 10-year observation window starts from today
                  ENDOGENOUS_BETA=False,
-                 REPAYMENT_PERIOD=DEPRECIATION_PERIOD
+                 TECHNICAL_LIFETIME=TECHNICAL_LIFETIME
                  )
 
 #%%CALCULATION OF FINANCIAL METRICS
 
-# Calculate Internal Rate of Return (IRR)
+# Calculate Internal Rate of Return (IRR) - takes ca. 1 minute
 IRR = p_example.get_IRR()
 print("____IRR:", IRR.mean())
 
@@ -123,11 +122,10 @@ STORE_RESULTS = {
     "OCF_std" : operating_cashflow_std,
     "NOCF" : non_operating_cashflow,
     "NOCF_std" : non_operating_cashflow_std,
-    "Offtake_Value" : Offtake_Value
     }
 
 #%% Visualize annual non-discounted cashflows   
-LIFETIME_TEMP = STORE_RESULTS["ATTR"]["TECHNICAL_LIFETIME"]
+LIFETIME_TEMP = STORE_RESULTS["ATTR"]["DEPRECIATION_PERIOD"]
 start_year = 2030
 years = np.arange(start_year, LIFETIME_TEMP+start_year)
 
@@ -167,11 +165,10 @@ print("____WACC:", round(STORE_RESULTS["WACC"]*100, 2), "%")
 print("____NPV:", round(STORE_RESULTS["NPV"].mean()*1e-6,2), " USD Million")
 print("____VaR:", round(STORE_RESULTS["VaR"]*1e-6,2), " USD Million")
 print("____LCOE:", round(STORE_RESULTS["LCOE"].mean(),3), " USD/kWh")
-print("____Offtake_Value:", round(STORE_RESULTS["Offtake_Value"]*1e-9,2), " USD Billion")
 
 #%% Visualize development of NPV over project lifetime
 
-LIFETIME_TEMP = STORE_RESULTS["ATTR"]["TECHNICAL_LIFETIME"]
+LIFETIME_TEMP = STORE_RESULTS["ATTR"]["DEPRECIATION_PERIOD"]
 WACC_TEMP = STORE_RESULTS["WACC"]
 
 years = np.arange(LIFETIME_TEMP+1)
@@ -255,7 +252,6 @@ else:
 
 ax.set_xlabel('Years')
 ax.set_ylabel('Net present value [US$]')
-#ax.ylim(0, 4*1e8)
 ax.legend(loc="lower right")
 ax.grid(True)
 xtick_position = [1, 6, 11, 16, 21, 26, 31]
@@ -269,5 +265,4 @@ print("____WACC:", round(STORE_RESULTS["WACC"]*100, 2), "%")
 print("____NPV:", round(STORE_RESULTS["NPV"].mean()*1e-6,2), " USD Million")
 print("____VaR:", round(STORE_RESULTS["VaR"]*1e-6,2), " USD Million")
 print("____LCOE:", round(STORE_RESULTS["LCOE"].mean(),3), " USD/kWh")
-print("____Offtake_Value:", round(STORE_RESULTS["Offtake_Value"]*1e-9,2), " USD Billion")
 

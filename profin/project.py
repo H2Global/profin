@@ -22,10 +22,10 @@ class Project(Indicators, Risks):
     --------------------------
 
     - The values of the dictionary ATTR can be defined as int, float or numpy arrays.\n
-    If being defined as numpy arrays, they must have the same length as the defined project LIFETIME.
+    If being defined as numpy arrays, they must have the same length as the defined DEPRECIATION_PERIOD.
 
     - The values of the scale-parameter in the dictionary RISK_PARAM can be defined as int, float or numpy arrays.
-    If being defined as numpy arrays, they must have the same length as the defined project LIFETIME.
+    If being defined as numpy arrays, they must have the same length as the defined DEPRECIATION_PERIOD.
     """
         
     def __init__(self,
@@ -61,7 +61,7 @@ class Project(Indicators, Risks):
             This is the annual investment into the project.
         TERMINAL_VALUE : int, float, array
             This is the final sales value.
-        TECHNICAL_LIFETIME : int
+        DEPRECIATION_PERIOD : int
             This is the analyzed lifetime of the project. All cashflows are calculated for this lifetime.
         OPEX : int, float, array
             Annual operational expenditure.
@@ -79,20 +79,30 @@ class Project(Indicators, Risks):
                 RISK_PARAM = {
                     "K_INVEST" : {
                         "distribution" : "normal",
-                        "scale_start" : 20000,
-                        "scale_end" : 10000,
+                        "scale" : float or np.array,
+                        "limit" : {
+                            "min" : 0.9,
+                            "max" : 0.5
+                            },
                         "correlation" : {
-                            "MSCI" : 0.9,
                             "K_E_in" : 0.5
                             }
                         }
                     }
             For each parameter, stochastic distribution functions can be
             defined, which determine the fluctuation around the mean values
-            within the Monte-Carlo simulation.
+            within the Monte-Carlo simulation. The distribution parameter
+            defines the type of stochastic distribution. Currently only
+            "normal" distributions are available. The sclae parameter
+            defines the standard deviation of the normal distribution.
+            The limit parameter caps the stochastic distribution at the 
+            min. and max. values for ensure realistic values (e.g. to 
+            avoid negative prices). The correlation parameter defines 
+            the correlation to other risk parameters, if multiple 
+            are defined.
 
         **kwargs
-            DEPRECIATION_PERIOD : int
+            TECHNICAL_LIFETIME : int
                 This parameter is the repayment period for bank loans and the
                 depreciation period for equity capital.
                 It defaults to the LIFETIME of the project.

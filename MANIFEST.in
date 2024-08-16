@@ -1,0 +1,11 @@
+# Include README and license files
+include README.md
+include LICENSE.txt
+
+# Include example project
+include deployment/example_project.py
+
+# Exclude temporary files and directories
+global-exclude __pycache__
+prune dist/
+prune *.egg-info/

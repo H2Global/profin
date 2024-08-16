@@ -18,6 +18,7 @@ class Indicators():
     def __init__(self):
         pass
 
+
     def get_WACC(self, **kwargs):
         """
         This method calculates the weighted average cost of capital,
@@ -218,6 +219,21 @@ class Indicators():
     
     
     def get_sharpe(self, IRR):
+        """
+        This methods calculates the sharpe ratio of the project as 
+        a measure of risk-return.
+
+        Parameters
+        ----------
+        IRR : array_like
+            An array of simulated Internal Rates of Return for the project.
+
+        Returns
+        -------
+        float
+            Sharpe ratio.
+
+        """
         
         return (IRR.mean() - self.ATTR["R_FREE"]) / IRR.std()
     
@@ -295,7 +311,7 @@ class Indicators():
             return OPERATING_CASHFLOW, OPERATING_CASHFLOW_STD, NON_OPERATING_CASHFLOW, NON_OPERATING_CASHFLOW_STD
         
         
-    def get_NPV_Subsidy_Annually_Constant(self, ANNUAL_SUBSIDY, npv_target, WACC, PERIOD):
+    def get_NPV_Subsidy_Anchor_Capacity(self, ANNUAL_SUBSIDY, npv_target, WACC, PERIOD):
         """
         This method calculates the net present value of the energy project in US dollars,
         considering future developments of interest rates and country-specific
@@ -345,62 +361,6 @@ class Indicators():
         
         return NPV
     
-    def get_NPV_Subsidy_Anchor_Capacity(self, ANCHOR_CAPACITY, npv_target, WACC, PERIOD, E_OUT_MAX):
-        """
-        This method calculates the net present value of the energy project in US dollars,
-        considering future developments of interest rates and country-specific
-        developments.
-
-        Parameters
-        ----------
-        ANCHOR_CAPACITY : float
-            TO BE DEFINED.
-        npv_target : float
-            The target NPV that the project aims to achieve.
-        WACC : float
-            The Weighted Average Cost of Capital.
-        PERIOD : int
-            The total period over which the NPV is calculated.
-        E_OUT_MAX : float
-            The maximum energy output capacity of the project.
-
-
-        Returns
-        -------
-        float
-            NPV:The calculated NPV of the project, after considering the anchor capacity and the specified economic factors over the given period.
-        """
-        
-        period_to_analyze = PERIOD
-        
-        #Calculate, whether the anchor capacity bookings would exceed the revenues from actual capacity bookings.
-        SUBSIDY = self.ATTR["K_E_out"]*E_OUT_MAX*ANCHOR_CAPACITY-self.ATTR["K_E_out"]*self.ATTR["E_out"]
-        SUBSIDY[SUBSIDY<0] = 0
-                
-        #Calculate the matrix for all timesteps and random distributions.
-        OPERATING_CASHFLOW = (
-            self.ATTR["K_E_out"]*self.ATTR["E_out"] +
-            SUBSIDY -
-            self.ATTR["OPEX"] - 
-            self.ATTR["K_E_in"]*self.ATTR["E_in"]
-            ) * (1-self.ATTR["CORPORATE_TAX_RATE"])
-         
-        TERMINAL_VALUE = self.ATTR["TERMINAL_VALUE"].copy()
-
-        K_INVEST = self.ATTR["K_INVEST"].copy()
-                
-        RELEVANT_CASHFLOWS = (
-            OPERATING_CASHFLOW + 
-            TERMINAL_VALUE -
-            K_INVEST
-            )
-        
-        #Discounting of annual cashflows and investments
-        NPV = -npv_target
-        for t in range(period_to_analyze):
-            NPV += RELEVANT_CASHFLOWS[t] / (1+WACC)**t
-        
-        return NPV
     
     def get_NPV_Subsidy_Fixed_Premium(self, FIXED_PREMIUM, npv_target, WACC, PERIOD):
         """
@@ -451,7 +411,6 @@ class Indicators():
             NPV += RELEVANT_CASHFLOWS[t] / (1+WACC)**t
         
         return NPV
-
     
     
     def get_subsidy(self, npv_target, depreciation_target, subsidy_scheme, WACC, **kwargs):
@@ -488,10 +447,6 @@ class Indicators():
             npv_temp = self.get_NPV(WACC, PERIOD=depreciation_target)
             subsidy = npv_target - npv_temp
             
-        elif subsidy_scheme == "ANNUALLY_CONSTANT":
-            x_init = np.full(self.RANDOM_DRAWS, 1e+6)
-            subsidy = so.fsolve(self.get_NPV_Subsidy_Annually_Constant, x_init, args=(npv_target,WACC,depreciation_target))
-
         elif subsidy_scheme == "ANCHOR_CAPACITY":
             E_OUT_MAX = kwargs.get("E_OUT_MAX", 0)
             if E_OUT_MAX == 0:
@@ -521,15 +476,3 @@ class Indicators():
             raise AttributeError("No such subsidy scheme defined.") 
 
         return subsidy
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    

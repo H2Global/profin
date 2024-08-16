@@ -1,0 +1,19 @@
+# directories
+*.eggs/
+*.egg-info/
+*.idea/
+*.media/
+*.media/
+
+# file types to ignore
+*.egg-info
+
+#exclude source distributions in dist-folder
+dist/
+
+#exclude read the docs site-folder
+site/
+
+#exclude deployments
+deployments/*
+!deployments/example_project.py

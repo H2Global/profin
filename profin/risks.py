@@ -36,13 +36,12 @@ class Risks():
             RISK_PARAM = {
                 "K_INVEST" : {
                     "distribution" : "normal",
-                    "scale" : float to np.array,
+                    "scale" : float or np.array,
                     "limit" : {
                         "min" : 0.9,
                         "max" : 0.5
                         },
                     "correlation" : {
-                        "MSCI" : 0.9,
                         "K_E_in" : 0.5
                         }
                     }
