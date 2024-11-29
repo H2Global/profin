@@ -14,5 +14,4 @@ dist/
 site/
 
 #exclude deployments
-deployments/*
-!deployments/example_project.py
+deployments/
