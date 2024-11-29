@@ -49,7 +49,8 @@ class Terminal:
             "LOHC" : 416.92 # €/m³-tank
             }
         self.CAPEX_Conversion_Specific_LOHC = 237 #€/kW
-        self.electricity_cost = 0.13 # €/kWh_H2
+        #https://ec.europa.eu/eurostat/databrowser/view/ten00117/default/table?lang=en --> Long-term average of EU27 before energy crisis in 2022.
+        self.electricity_cost = 0.08 # €/kWh_H2. 
 
         
     def calculate_tank_volume(self):
@@ -63,6 +64,17 @@ class Terminal:
             ship_volume = self.energysupply * 1e+9 * (self.arrival_frequency_ships / 365) / h2_energy_density_grav / self.density[self.energycarrier]
             self.tank_volume = ship_volume * self.dimension_factor #m3
             return self.tank_volume
+        else:
+            raise AttributeError("Method not yet defined for this -energycarrier-")
+
+
+    def calculate_energy_imported_carrier(self):
+        if self.energycarrier == "LOHC":
+            energy_imported_carrier = self.energysupply * 1e+9 / self.lohc_swing_factor
+            return energy_imported_carrier
+        elif self.energycarrier in ["SNG", "NH3", "LH2"]:
+            energy_imported_carrier = self.energysupply * 1e+9 / self.conversion_efficiency[self.energycarrier]
+            return energy_imported_carrier
         else:
             raise AttributeError("Method not yet defined for this -energycarrier-")
 

@@ -178,7 +178,7 @@ class Project(Indicators, Risks):
         self.ATTR["OPEX"] = OPEX
         # Subsidy in an annual resolution.
         self.ATTR["SUBSIDY"] = kwargs.get("SUBSIDY", 0)
-               
+                
         if self.ATTR["DEPRECIATION_PERIOD"] > self.ATTR["TECHNICAL_LIFETIME"]:
             raise Warning("Repayment period is longer than the analyzed project period. - Consider an open PRINCIPAL in the definition of the TERMINAL_VALUE")
             
@@ -242,7 +242,6 @@ class Project(Indicators, Risks):
         else:
             self.ATTR["ERP_MATURE"] = np.float64(ERP_MATURE_EXT)
             
-        # Derived from balance sheets and income statements of H2Global donors
         self.ATTR["BETA_UNLEVERED"] = kwargs.get("BETA_UNLEVERED", 1.058) #1.058 - Lin et al. (2024): "Market-based asset valuation of hydrogen geological storage", DOI: 10.1016/j.ijhydene.2023.07.074 
         self.ATTR["ENDOGENOUS_PROJECT_RISK"] = kwargs.get("ENDOGENOUS_PROJECT_RISK", False)
                     
@@ -282,7 +281,7 @@ class Project(Indicators, Risks):
                     if attr in ["INTEREST", "TECHNICAL_LIFETIME", "DEPRECIATION_PERIOD",
                                 "EQUITY_SHARE", "CRP", "CRP_EXPOSURE", 
                                 "CORPORATE_TAX_RATE", "DEBT_SHARE", "R_FREE",
-                                "ERP_MATURE", "BETA_UNLEVERED", "ENDOGENOUS_PROJECT_RISK",
+                                "ERP_MATURE", "BETA_UNLEVERED", "ENDOGENOUS_PROJECT_RISK"
                                 ]:
                         #exclude some attributes from conversion to matrix form.
                         continue
@@ -332,7 +331,7 @@ class Project(Indicators, Risks):
                         self.RISK_CORR[x][y] = corr_x_y
                     else:
                         raise AttributeError("Given correlations of risk", risk_x, "and risk", risk_y, "are not equal. Please check the input.")
-                    
+                                  
         # Calculate risks, if RISK_PARAM is given.
         if len(self.RISK_PARAM):
             #Define risks for each time step (year) in lifetime.
@@ -340,6 +339,10 @@ class Project(Indicators, Risks):
                 TIMESTEP_RISKS = self.get_risks(t)
                 #iteration of each risk within a time step t.
                 for r, risk in enumerate(self.RISK_PARAM):
+                    if risk == "K_INVEST" and t > 0:
+                        continue
+                    if risk == "TERMINAL_VALUE" and t < self.ATTR["DEPRECIATION_PERIOD"]-1:
+                        continue
                     TIMESTEP_RISKS_IND = TIMESTEP_RISKS[risk]
                     #filter for negative values
                     TIMESTEP_RISKS_IND[TIMESTEP_RISKS_IND < 0] = 0

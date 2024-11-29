@@ -46,7 +46,11 @@ class Indicators():
                 IRR_DELTA = IRR_REF.mean()-np.percentile(IRR, 0.01)
             else:
                 IRR_DELTA = IRR.mean()-np.percentile(IRR, 0.01)
-                
+            
+            if IRR_DELTA < 0 or IRR_DELTA > 1:
+                print("Project-specific risks out of bound. Set to 0.")
+                IRR_DELTA = 0
+            
             self.ATTR["SP"] = IRR_DELTA
             
             print("Project-specific risk:", round(self.ATTR["SP"]*100, 2), "%")
@@ -62,7 +66,8 @@ class Indicators():
             self.ATTR["SP"]
             )
         
-        self.ATTR["COST_OF_DEBT"] = (self.ATTR["INTEREST"]+self.ATTR["CRP"]) * (1-self.ATTR["CORPORATE_TAX_RATE"])
+        #No country risk in cost of debt, assuming globally diversified portfolio! - Global investor!
+        self.ATTR["COST_OF_DEBT"] = self.ATTR["INTEREST"] * (1-self.ATTR["CORPORATE_TAX_RATE"])
         
         print("Cost of debt:", self.ATTR["COST_OF_DEBT"])
         print("Cost of equity:", self.ATTR["COST_OF_EQUITY"])
@@ -122,17 +127,20 @@ class Indicators():
 
         K_INVEST = self.ATTR["K_INVEST"].copy()
                 
-        RELEVANT_CASHFLOWS = (
+        RELEVANT_CASHFLOWS_END_OF_YEAR = (
             OPERATING_CASHFLOW + 
-            SUBSIDY + 
-            TERMINAL_VALUE -
+            TERMINAL_VALUE 
+            )
+        RELEVANT_CASHFLOWS_START_OF_YEAR = (
+            SUBSIDY -
             K_INVEST
             )
         
         #Discounting of annual cashflows and investments
         NPV = 0
         for t in range(period_to_analyze):
-            NPV += RELEVANT_CASHFLOWS[t] / (1+WACC)**t
+            NPV += RELEVANT_CASHFLOWS_END_OF_YEAR[t] / (1+WACC)**(t+1)
+            NPV += RELEVANT_CASHFLOWS_START_OF_YEAR[t] / (1+WACC)**t
         
         return NPV
 
@@ -184,10 +192,14 @@ class Indicators():
         TOTAL_ENERGY = 0
                 
         for t in range(self.ATTR["DEPRECIATION_PERIOD"]):
+            #DISCOUNTING AT THE BEGINNING OF THE YEAR: INVESTMENTS
+            TOTAL_COSTS += (self.ATTR["K_INVEST"][t]) / (1+WACC)**t
+            
+            #DICOUNTING AT THE END OF THE YEAR: EVERYTHING ELSE
             # Add discounted energy purchase and operating costs
-            TOTAL_COSTS += (self.ATTR["K_INVEST"][t] + self.ATTR["K_E_in"][t]*self.ATTR["E_in"][t] + self.ATTR["OPEX"][t]) / (1+WACC)**t
-            # Add discounted energy production        
-            TOTAL_ENERGY += self.ATTR["E_out"][t] / (1+WACC)**t
+            TOTAL_COSTS += (self.ATTR["K_E_in"][t]*self.ATTR["E_in"][t] + self.ATTR["OPEX"][t]) / (1+WACC)**(t+1)
+            # Add discounted energy production. Discount at the end of the year (t+1).     
+            TOTAL_ENERGY += self.ATTR["E_out"][t] / (1+WACC)**(t+1)
                 
         LCOE = TOTAL_COSTS / TOTAL_ENERGY
         
@@ -260,21 +272,17 @@ class Indicators():
         #for interest rate, dividend payouts and principal settlements.
         
         DISCOUNT = kwargs.get("DISCOUNT", False)
+                
+        CASHFLOW_MATRIX = (self.ATTR["K_E_out"]*self.ATTR["E_out"] -
+        self.ATTR["OPEX"] - 
+        self.ATTR["K_E_in"]*self.ATTR["E_in"])
         
         # OPERATING CASHFLOW        
         #____Annual operating cashflows, non-discounted
-        OPERATING_CASHFLOW = (
-            self.ATTR["K_E_out"]*self.ATTR["E_out"] -
-            self.ATTR["OPEX"] - 
-            self.ATTR["K_E_in"]*self.ATTR["E_in"]
-            ).mean(axis=1) * (1-self.ATTR["CORPORATE_TAX_RATE"])
-        
+        OPERATING_CASHFLOW = (CASHFLOW_MATRIX).mean(axis=1) * (1-self.ATTR["CORPORATE_TAX_RATE"])
+                
         OPERATING_CASHFLOW_STD = (
-                (
-                self.ATTR["K_E_out"]*self.ATTR["E_out"] -
-                self.ATTR["OPEX"] - 
-                self.ATTR["K_E_in"]*self.ATTR["E_in"]
-                ) * (1-self.ATTR["CORPORATE_TAX_RATE"])
+                (CASHFLOW_MATRIX) * (1-self.ATTR["CORPORATE_TAX_RATE"])
             ).std(axis=1)
 
         #____Discount annual operating cashflows
@@ -353,7 +361,7 @@ class Indicators():
             TERMINAL_VALUE -
             K_INVEST
             )
-        
+                
         #Discounting of annual cashflows and investments
         NPV = -npv_target
         for t in range(period_to_analyze):
@@ -404,7 +412,7 @@ class Indicators():
             TERMINAL_VALUE -
             K_INVEST
             )
-        
+                
         #Discounting of annual cashflows and investments
         NPV = -npv_target
         for t in range(period_to_analyze):

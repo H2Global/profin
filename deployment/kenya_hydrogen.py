@@ -133,6 +133,7 @@ for s in list(scenarios):
     #Output: 1689*1e6 kWh ammonia per year --> 323.6 million tons ammonia
     #Lower heating value ammonia: 5.22 kWh / kg  
     p_example = pp.Project(
+                     DEPRECIATION_PERIOD=10,
                      E_in=3028*1e6,
                      E_out=E_out_ARRAY, #kWh hydrogen per year from ISE study
                      K_E_in=0, #renewable energy

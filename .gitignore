@@ -2,8 +2,7 @@
 *.eggs/
 *.egg-info/
 *.idea/
-*.media/
-*.media/
+media/
 
 # file types to ignore
 *.egg-info

@@ -17,24 +17,52 @@ import scipy.optimize as so
 #%% INPUT PARAMETERS
 
 #Iterate the following scenario parameters manually
-INFRASTRUCTURE = "Conversion" # "Pipeline", "Terminal", "Storage", "Conversion"
-Terminal_Type = "LOHC" #NH3, LH2, SNG, LOHC
+INFRASTRUCTURE = "Storage" # "Pipeline", "Terminal", "Storage", "Conversion"
+Terminal_Type = "LH2" #NH3, LH2, SNG, LOHC
 Storage_Type = "Multi-turn" #Single-turn
+Storage_Tech = "Depleted-field" #Depleted-field; Salt-cavern
 #____Country risk (see Damodaran)
-COUNTRY_RISK_PREMIUM=0.0 # Europe: 0%, Moody's B1-countries: 6.5%, Damodaran
+COUNTRY_RISK_PREMIUM=0 # Europe: 0%, Moody's B1-countries: 6.5%, Damodaran
+METHOD_PROJECT_RISK = "Deloitte" # #Reference
 
 #Initialize storage dicts
 SUBSIDY_DICT = {}
 CASHFLOW_DICT = {}
 STORE_RESULTS = True
-FILE_PATH = "C:\\Users\\JulianReul.AzureAD\\H2Global\Outreach - General\\Working Groups\\01_WG Infrastructure\\05_Report\\Simulation_Results.xlsx"
+FILE_PATH = "C:\\Users\\JulianReul.AzureAD\\H2Global\Outreach - General\\Working Groups\\01_WG Infrastructure\\05_Report\\Simulation_Results_FINAL.xlsx"
 DICT_RESULTS = {}
 
 print("INFRASTRUCTURE: ", INFRASTRUCTURE)
 print("Terminal_Type: ", Terminal_Type)
 print("Storage_Type: ", Storage_Type)
+print("Storage_Tech: ", Storage_Tech)
 
-for t_scale in [1, 2, 4]: #1, 2, 4
+NEUTRAL_TARIFF_DICT = {
+    "Pipeline" : 0.0115,
+    "Terminal" : {
+        "NH3" : 0.0120,
+        "LH2" : 0.0240,
+        "SNG" : 0.0205,
+        "LOHC" : 0.0017
+        },
+    "Conversion" : {
+        "NH3" : 0.0420,
+        "SNG" : 0.1660,
+        "LOHC" : 0.0520
+        },
+    "Storage" : {
+        "Single-turn" : {
+            "Salt-cavern" : 0.2250,
+            "Depleted-field" : 0.1145
+            },
+        "Multi-turn" : {
+            "Salt-cavern" : 0.0880,
+            "Depleted-field" : 0.0440
+            },
+        } 
+    }
+
+for t_scale in [0.75, 1, 1.25]: 
     DICT_RESULTS["t_scale_" + str(t_scale)] = {}
     SUBSIDY_DICT["t_scale_" + str(t_scale)] = {}
     CASHFLOW_DICT["t_scale_" + str(t_scale)] = {}
@@ -47,7 +75,7 @@ for t_scale in [1, 2, 4]: #1, 2, 4
     print("__________________________")
     print("__________________________")
 
-    for Utilization in ["Low"]: #, "Ramp-up", "Low", 
+    for Utilization in ["Ramp-up"]: #, "Ramp-up", "Low", 
     
         DICT_RESULTS["t_scale_" + str(t_scale)][Utilization] = {}
         SUBSIDY_DICT["t_scale_" + str(t_scale)][Utilization] = {}
@@ -59,7 +87,15 @@ for t_scale in [1, 2, 4]: #1, 2, 4
                 
         #GENERAL PROJECT DATA
         #____Tariff: Same tariff for all infrastructures
-        TARIFF = 0.00525 * t_scale  #€/kWh-transported or -stored (=0.175 €/kg H2, which is ~5% of future price of green H2, assuming 3.5 €/kg H2)
+        if INFRASTRUCTURE == "Pipeline":
+            NEUTRAL_TARIFF = NEUTRAL_TARIFF_DICT[INFRASTRUCTURE]
+        elif INFRASTRUCTURE in ["Terminal", "Conversion"]:
+            NEUTRAL_TARIFF = NEUTRAL_TARIFF_DICT[INFRASTRUCTURE][Terminal_Type]
+        elif INFRASTRUCTURE == "Storage":
+            NEUTRAL_TARIFF = NEUTRAL_TARIFF_DICT[INFRASTRUCTURE][Storage_Type][Storage_Tech]
+        else:
+            raise AttributeError("Unknown Scenario.")
+        TARIFF = NEUTRAL_TARIFF * t_scale  #€/kWh-transported or -stored (=0.175 €/kg H2, which is ~5% of future price of green H2, assuming 3.5 €/kg H2)
     
         #____Start of operations
         START_YEAR = 2030
@@ -72,7 +108,10 @@ for t_scale in [1, 2, 4]: #1, 2, 4
         #____chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://energy.ec.europa.eu/system/files/2023-05/Quarterly%20Report%20on%20European%20Gas%20Markets%20report%20Q4%202022.pdf
         if Utilization == "Ramp-up":
             PEAK_UTILIZATION = 0.80
-            START_UP_PHASE = 5  #in years
+            if INFRASTRUCTURE in ["Pipeline", "Storage"]:
+                START_UP_PHASE = 8  #in years
+            else:
+                START_UP_PHASE = 5  #in years
             utilization_curve_startup = np.linspace(0.5, PEAK_UTILIZATION, START_UP_PHASE)
             utilization_curve_constant = np.linspace(PEAK_UTILIZATION, PEAK_UTILIZATION, DEPRECIATION_PERIOD - START_UP_PHASE)
             utilization_curve = np.append(utilization_curve_startup, utilization_curve_constant)
@@ -90,8 +129,6 @@ for t_scale in [1, 2, 4]: #1, 2, 4
             K_INVEST = np.zeros(shape=DEPRECIATION_PERIOD)
             #Initial investment costs for 1500 km of pipeline - chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://ehb.eu/files/downloads/EHB-2023-20-Nov-FINAL-design.pdf
             K_INVEST[0] = 4.488 * 1e+9 + 1.280 * 1e+9  #48"-Pipeline (60% new, 40% repurposed) + 2 x 160 MW compressor
-            #Potential second-stage investment --> Discuss this option during on-site event!
-            #K_INVEST[10] = 3.2*1e+9 + 320*1e+6 #36"-Pipeline (100% new) + 1 x 80 MW compressor    
     
             #____Terminal value at the end of life
             SHARE_REST_VALUE = 1 - DEPRECIATION_PERIOD / TECHNICAL_LIFETIME
@@ -194,7 +231,8 @@ for t_scale in [1, 2, 4]: #1, 2, 4
         elif INFRASTRUCTURE == "Conversion":
             #____Averaged technical lifetime of plant components
             TECHNICAL_LIFETIME = 25
-            
+            cost_of_imported_energy = 0.1923 #€/kWh - from 1000 €/ton NH3
+
             #COST VALIDATION WITH MODEL FROM Tintemann (2023)
             #Terminal type: NH3, LH2, SNG
             energycarrier = Terminal_Type
@@ -208,19 +246,31 @@ for t_scale in [1, 2, 4]: #1, 2, 4
                 terminal_ella = tm.Core(energycarrier, energysupply)
             terminal_matteo = Terminal(energycarrier, energysupply)
             
+            terminal_matteo_LOHC = Terminal("LOHC", energysupply)
+            energy_imported_LOHC = terminal_matteo_LOHC.calculate_energy_imported_carrier()
+            
             #COST CALCULATIONS
             if energycarrier == "LOHC":
                 #USE H2Global model for CAPEX/OPEX calculation
                 CAPEX_temp = terminal_matteo.get_capex_conversion()
                 OPEX_temp = terminal_matteo.get_opex_conversion()
-                
-            else:                    
+            else:    
                 if energycarrier == "SNG":
+                    heat_demand_cracker = 0.49 #kWh SNG / kWh H2 --> Reference: https://www.sciencedirect.com/science/article/abs/pii/S1383586699000210#:~:text=Pressure%20swing%20adsorption%20(PSA)%20processes,the%20range%2070%E2%80%9385%25.
+                    surplus_imported_energy = heat_demand_cracker*energysupply*1e+9 #kWh
+                    cost_of_surplus_imported_energy = surplus_imported_energy*cost_of_imported_energy
+                    print("Cost of surplus imported energy [€ Mio.]:", cost_of_surplus_imported_energy*1e-6)
+                    
                     CAPEX_temp = terminal_ella.reformer_.get_capex()
-                    OPEX_temp = terminal_ella.reformer_.get_e_costs() + terminal_ella.reformer_.get_co2_shipping_costs()
+                    OPEX_temp = terminal_ella.reformer_.get_e_costs() + terminal_ella.reformer_.get_co2_shipping_costs() + 0.03*CAPEX_temp + cost_of_surplus_imported_energy
                 elif energycarrier == "NH3":
+                    heat_demand_cracker = 0.1178 #kWh NH3 / kWh H2 --> Reference from Rouvenhorst (Ammonia Society)
+                    surplus_imported_energy = heat_demand_cracker*energysupply*1e+9 #kWh
+                    cost_of_surplus_imported_energy = surplus_imported_energy*cost_of_imported_energy
+                    print("Cost of surplus imported energy [€ Mio.]:", cost_of_surplus_imported_energy*1e-6)
+                    
                     CAPEX_temp = terminal_ella.cracker_.get_capex()
-                    OPEX_temp = terminal_ella.cracker_.get_e_costs() 
+                    OPEX_temp = terminal_ella.cracker_.get_e_costs() + 0.03*CAPEX_temp + cost_of_surplus_imported_energy
                 elif energycarrier == "LH2":
                     #No conversion necessary for LH2
                     continue
@@ -264,16 +314,30 @@ for t_scale in [1, 2, 4]: #1, 2, 4
             #DOI: doi.org/10.1016/j.ijhydene.2023.07.074
             
             if Storage_Type == "Single-turn":
+                
+                if Storage_Tech == "Salt-cavern":
+                    specific_investment_costs = 900 #€/MWh for salt cavern project
+                    capacity = 25 #GWh working gas
+                if Storage_Tech == "Depleted-field":
+                    specific_investment_costs = 450 #€/MWh for depleted gas fields/aquifers
+                    capacity = 145 #GWh working gas
+                    
                 max_tank_turns = 1  #Seasonal storage
-                specific_investment_costs = 450 #€/MWh for depleted gas fields/aquifers
-                capacity = 145 #GWh working gas
                 CAPEX = capacity*1e+3 * specific_investment_costs
+                OPEX = CAPEX*0.04 #Frontier study
                 
             elif Storage_Type == "Multi-turn":
+                
+                if Storage_Tech == "Salt-cavern":
+                    specific_investment_costs = 900 #€/MWh for salt cavern project
+                    capacity = 25 #GWh working gas
+                if Storage_Tech == "Depleted-field":
+                    specific_investment_costs = 450 #€/MWh for depleted gas fields/aquifers
+                    capacity = 145 #GWh working gas
+                    
                 max_tank_turns = 3.5  #Seasonal storage
-                specific_investment_costs = 900 #€/MWh for salt cavern project
-                capacity = 25 #GWh working gas
                 CAPEX = capacity*1e+3 * specific_investment_costs
+                OPEX = CAPEX*0.1 #Comment by RAG Austria that OPEX is higher for multi-turn!
             
             else:
                 raise AttributeError("Unknown storage type")
@@ -282,7 +346,6 @@ for t_scale in [1, 2, 4]: #1, 2, 4
             #REFERENCE: Gas Infrastructure Europe, 04.2024, Why European Underground Hydrogen Storage Needs Should Be Fulfilled
             K_INVEST = np.zeros(shape=DEPRECIATION_PERIOD)
             K_INVEST[0] = CAPEX
-            OPEX = CAPEX*0.04
     
             print("CAPEX: ", CAPEX)
             print("OPEX: ", OPEX)
@@ -304,6 +367,8 @@ for t_scale in [1, 2, 4]: #1, 2, 4
     
         else:
             raise ValueError("Unknown infrastructure type.")
+    
+    
     
         #FINANCIAL METRICS
         #____Equity: Reference: RMI (2024): "Oceans of opportunity", annex
@@ -367,17 +432,16 @@ for t_scale in [1, 2, 4]: #1, 2, 4
         }
     
         # Scenario calculations
-    
         #Initialize Project-object
         p_example = pp.Project(
-            E_in=E_in,
-            E_out=E_out,
-            K_E_in=K_E_in,
-            K_E_out=K_E_out,
-            K_INVEST=K_INVEST,
-            TERMINAL_VALUE=TERMINAL_VALUE,
-            DEPRECIATION_PERIOD=DEPRECIATION_PERIOD,
-            OPEX=OPEX,
+            E_in=E_in, #Annual energy consumption in kWh
+            E_out=E_out, #Annual production in kWh
+            K_E_in=K_E_in, #Average energy purchase price
+            K_E_out=K_E_out, #Average energy sales price
+            K_INVEST=K_INVEST, #Total investment costs (also provided as an array over depreciation period)
+            TERMINAL_VALUE=TERMINAL_VALUE, #Terminal value
+            DEPRECIATION_PERIOD=DEPRECIATION_PERIOD, #25 years?
+            OPEX=OPEX, #Total operational costs (also possible to provide in array-form)
             EQUITY_SHARE=EQUITY_SHARE,
             COUNTRY_RISK_PREMIUM=COUNTRY_RISK_PREMIUM,
             INTEREST=INTEREST,
@@ -424,12 +488,10 @@ for t_scale in [1, 2, 4]: #1, 2, 4
             "VaR": VaR,
             "Tariff": TARIFF
             }
-    
-        
+            
         ######                                                        ######
         ###### CALCULATE FINANCIAL METRICS WITH PRE-DEFINED SUBSIDIES ######
         ######                                                        ######
-    
         if Utilization == "Low":
             continue
         else:
@@ -494,7 +556,12 @@ for t_scale in [1, 2, 4]: #1, 2, 4
                 #CALCULATION OF FINANCIAL METRICS
             
                 # Calculate WACC for further calculations.
-                WACC_SUBSIDY = p_subsidy.get_WACC(IRR_REF=IRR)
+                if METHOD_PROJECT_RISK == "Deloitte":
+                    WACC_SUBSIDY = p_subsidy.get_WACC()
+                elif METHOD_PROJECT_RISK == "Reference":
+                    WACC_SUBSIDY = p_subsidy.get_WACC(IRR_REF=IRR)
+                else:
+                    raise AttributeError("Method not yet defined.")
                 print("____WACC_SUBSIDY:", WACC_SUBSIDY.mean())
             
                 # Calculate net present value (NPV)
@@ -544,7 +611,7 @@ for t_scale in [1, 2, 4]: #1, 2, 4
     print("______ELAPSED TIME FOR SINGLE CYCLE: ", delta_time, " sec.")
 
 
-#%%
+ #%%
 #STORING RESULTS TO FILE
 if STORE_RESULTS:
     # File path to the existing Excel file
@@ -553,7 +620,7 @@ if STORE_RESULTS:
     elif INFRASTRUCTURE == "Conversion":
         sheet_name = INFRASTRUCTURE + "_"  + Terminal_Type
     elif INFRASTRUCTURE == "Storage":
-        sheet_name = INFRASTRUCTURE + "_"  + Storage_Type
+        sheet_name = INFRASTRUCTURE + "_"  + Storage_Type + "_" + Storage_Tech
     else:
         sheet_name = INFRASTRUCTURE
     
