@@ -14,4 +14,4 @@ dist/
 site/
 
 #exclude deployments
-deployments/
+deployment/
