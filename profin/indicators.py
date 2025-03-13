@@ -144,6 +144,31 @@ class Indicators():
         
         return NPV
 
+    def get_taxation(self, **kwargs):
+        
+        TAX_DEDUCTIONS = kwargs.get("TAX_DEDUCTIONS", 0)
+        
+        REVENUE = (self.ATTR["K_E_out"]*self.ATTR["E_out"]).mean(axis=1)
+        CAPEX = self.ATTR["K_INVEST"][0].mean()
+        ANNUAL_DEPRECIATION_VALUE = CAPEX / self.ATTR["DEPRECIATION_PERIOD"]
+        DEPRECIATION = np.full(self.ATTR["DEPRECIATION_PERIOD"], ANNUAL_DEPRECIATION_VALUE)        
+        OPEX = self.ATTR["OPEX"].mean(axis=1)
+        INTEREST_EXPENSES = CAPEX * self.ATTR["DEBT_SHARE"] * self.ATTR["INTEREST"]
+        
+        TAXABLE_INCOME = REVENUE - (
+            DEPRECIATION +
+            OPEX +
+            INTEREST_EXPENSES +
+            TAX_DEDUCTIONS
+            )     
+
+        TAXABLE_INCOME[TAXABLE_INCOME < 0] = 0
+
+        SHARE_TAXABLE_INCOME = TAXABLE_INCOME / REVENUE
+        
+        INCOME_TAX = TAXABLE_INCOME * self.ATTR["CORPORATE_TAX_RATE"]
+                
+        return TAXABLE_INCOME, SHARE_TAXABLE_INCOME, INCOME_TAX, REVENUE, DEPRECIATION, OPEX, INTEREST_EXPENSES, TAX_DEDUCTIONS
 
     def get_IRR(self, **kwargs):
         """
