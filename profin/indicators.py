@@ -146,7 +146,8 @@ class Indicators():
 
     def get_taxation(self, **kwargs):
         
-        TAX_DEDUCTIONS = kwargs.get("TAX_DEDUCTIONS", 0)
+        TAX_DEDUCTIONS = kwargs.get("TAX_DEDUCTIONS", 0) #absolute tax reduction
+        TAX_CREDIT = kwargs.get("TAX_CREDIT", 0) #relative tax reduction
         
         REVENUE = (self.ATTR["K_E_out"]*self.ATTR["E_out"]).mean(axis=1)
         CAPEX = self.ATTR["K_INVEST"][0].mean()
@@ -155,12 +156,12 @@ class Indicators():
         OPEX = self.ATTR["OPEX"].mean(axis=1)
         INTEREST_EXPENSES = CAPEX * self.ATTR["DEBT_SHARE"] * self.ATTR["INTEREST"]
         
-        TAXABLE_INCOME = REVENUE - (
+        TAXABLE_INCOME = (REVENUE - (
             DEPRECIATION +
             OPEX +
             INTEREST_EXPENSES +
             TAX_DEDUCTIONS
-            )     
+            ))*(1-TAX_CREDIT)
 
         TAXABLE_INCOME[TAXABLE_INCOME < 0] = 0
 
